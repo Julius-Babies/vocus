@@ -12,14 +12,17 @@ repositories {
 
 dependencies {
     implementation(libs.docker.java.core)
-    implementation(libs.docker.java.transport.httpclient)
+    implementation(libs.docker.java.transport.zerodep)
 
+    implementation(libs.kaml)
     implementation(libs.koin.core)
     implementation(libs.koin.logger.slf4j)
 
     implementation(libs.kotlinx.coroutines.core)
 
     implementation(libs.kotlinx.serialization.json)
+
+    implementation(libs.postgres)
 
     testImplementation(kotlin("test"))
 }

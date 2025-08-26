@@ -9,8 +9,13 @@ import dev.babies.application.database.postgres.AbstractPostgresDatabase
 import dev.babies.utils.docker.doesContainerExist
 import dev.babies.utils.docker.isContainerRunning
 import dev.babies.utils.docker.prepareImage
+import dev.babies.utils.docker.runCommand
+import dev.babies.utils.waitUntil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.postgresql.util.PSQLException
+import java.sql.Connection
+import java.sql.DriverManager
 
 class Postgres16(
     private val dockerClient: DockerClient,
@@ -27,7 +32,6 @@ class Postgres16(
             println("The database differs from its required configuration. We'll attempt to remove it and create a new one.")
             println("If this fails, remove all containers that are using the $dockerNetworkName network and try again.")
             dockerClient.removeContainerCmd(containerName).withForce(true).exec()
-            dataDirectory.deleteRecursively()
             println("Database $containerName removed.")
         }
         if (state == State.Missing) {
@@ -36,6 +40,8 @@ class Postgres16(
 
         dockerClient.prepareImage(image)
         if (dockerClient.doesContainerExist(containerName)) dockerClient.removeContainerCmd(containerName).withForce(true).exec()
+
+        dataDirectory.deleteRecursively()
 
         val exposedPort = ExposedPort.tcp(5432)
         val portBindings = Ports()
@@ -47,10 +53,8 @@ class Postgres16(
             .createContainerCmd(image)
             .withName(containerName)
             .withEnv(
-                listOf(
-                    "POSTGRES_PASSWORD=vocusdev",
-                    "POSTGRES_DB=vocus"
-                )
+                "POSTGRES_PASSWORD=vocus",
+                "POSTGRES_USER=vocusdev"
             )
             .withHostConfig(
                 HostConfig()
@@ -67,7 +71,19 @@ class Postgres16(
     }
 
     override suspend fun getDatabases(): List<String> {
-        TODO("Not yet implemented")
+        val databases = mutableListOf<String>()
+        with(getConnection()) {
+            val statement = createStatement()
+            val resultSet = statement.executeQuery("SELECT datname FROM pg_database WHERE datistemplate = false")
+            while (resultSet.next()) {
+                databases.add(resultSet.getString(1))
+            }
+            resultSet.close()
+            statement.close()
+            close()
+        }
+
+        return databases
     }
 
     override suspend fun createDatabase(databaseName: String) {
@@ -82,6 +98,14 @@ class Postgres16(
         if (dockerClient.isContainerRunning(containerName)) return
         if (getState() != State.Created) throw IllegalStateException()
         dockerClient.startContainerCmd(containerName).exec()
+
+        waitUntil("Postgres $containerName to start") {
+            dockerClient.isContainerRunning(containerName)
+        }
+
+        waitUntil("Postgres $containerName is ready") {
+            dockerClient.runCommand(containerName, listOf("pg_isready", "-U", "vocusdev")) == 0
+        }
     }
 
     override suspend fun stop() {
@@ -94,9 +118,9 @@ class Postgres16(
         withContext(Dispatchers.IO) {
             val databaseContainer = dockerClient
                 .listContainersCmd()
-                .withNameFilter(listOf(containerName))
+                .withShowAll(true)
                 .exec()
-                .firstOrNull() ?: return@withContext State.Missing
+                .firstOrNull {containerName in it.names.map { name -> name.dropWhile { c -> c == '/' } } } ?: return@withContext State.Missing
             if (databaseContainer.image != image) return@withContext State.Invalid
             if (databaseContainer.labels["com.docker.compose.project"] != "vocus") return@withContext State.Invalid
             return@withContext null
@@ -108,5 +132,19 @@ class Postgres16(
         Created,
         Invalid,
         Missing
+    }
+
+    private suspend fun getConnection(): Connection {
+        var connection: Connection? = null
+        waitUntil("Connection ready") {
+            try {
+                connection = DriverManager.getConnection("jdbc:postgresql://localhost:5432/", "vocusdev", "vocus")
+                true
+            } catch (_: PSQLException) {
+                false
+            }
+        }
+        if (connection == null) throw IllegalStateException("Could not connect to database")
+        return connection
     }
 }
