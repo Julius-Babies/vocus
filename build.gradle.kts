@@ -1,5 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.2.0"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 group = "dev.babies"
@@ -10,6 +11,16 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.docker.java.core)
+    implementation(libs.docker.java.transport.httpclient)
+
+    implementation(libs.koin.core)
+    implementation(libs.koin.logger.slf4j)
+
+    implementation(libs.kotlinx.coroutines.core)
+
+    implementation(libs.kotlinx.serialization.json)
+
     testImplementation(kotlin("test"))
 }
 
