@@ -8,6 +8,7 @@ import dev.babies.application.config.ProjectConfig
 import dev.babies.application.config.getConfig
 import dev.babies.application.config.updateConfig
 import dev.babies.application.init.initPostgres16
+import dev.babies.application.init.initSsl
 import dev.babies.utils.aqua
 import dev.babies.utils.green
 import dev.babies.utils.red
@@ -61,6 +62,7 @@ class RegisterCommand : SuspendingCliktCommand("register") {
             applicationConfig.projects = (applicationConfig.projects - existingProject).filterNotNull()
             applicationConfig.projects += ProjectConfig(
                 name = config.name,
+                additionalSubdomains = config.additionalSubdomains,
                 infrastructure = ProjectConfig.Infrastructure(
                     databases = ProjectConfig.Infrastructure.Databases(
                         postgres16 = config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Postgres && it.version == "16" }?.let { databaseConfig ->
@@ -76,5 +78,6 @@ class RegisterCommand : SuspendingCliktCommand("register") {
         }
 
         if (config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Postgres && it.version == "16" } != null) initPostgres16()
+        initSsl()
     }
 }

@@ -6,7 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ProjectConfig(
     @SerialName("name") var name: String,
-    @SerialName("infrastructure") var infrastructure: Infrastructure = Infrastructure()
+    @SerialName("infrastructure") var infrastructure: Infrastructure = Infrastructure(),
+    @SerialName("additional_subdomains") var additionalSubdomains: List<String> = listOf()
 ) {
 
     @Serializable

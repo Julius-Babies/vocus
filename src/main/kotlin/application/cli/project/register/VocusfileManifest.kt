@@ -9,7 +9,7 @@ import java.io.File
 @Serializable
 internal data class VocusfileManifest(
     @SerialName("name") val name: String,
-    @SerialName("hosts") val hosts: List<String> = emptyList(),
+    @SerialName("additional_subdomains") val additionalSubdomains: List<String> = emptyList(),
     @SerialName("infrastructure") val infrastructure: Infrastructure?
 ) {
     companion object Companion {
