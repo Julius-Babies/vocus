@@ -87,11 +87,21 @@ class Postgres16(
     }
 
     override suspend fun createDatabase(databaseName: String) {
-        TODO("Not yet implemented")
+        with(getConnection()) {
+            val statement = createStatement()
+            statement.execute("CREATE DATABASE $databaseName")
+            statement.close()
+            close()
+        }
     }
 
     override suspend fun deleteDatabase(databaseName: String) {
-        TODO("Not yet implemented")
+        with(getConnection()) {
+            val statement = createStatement()
+            statement.execute("DROP DATABASE $databaseName")
+            statement.close()
+            close()
+        }
     }
 
     override suspend fun start() {

@@ -11,6 +11,8 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.clikt)
+
     implementation(libs.docker.java.core)
     implementation(libs.docker.java.transport.zerodep)
 

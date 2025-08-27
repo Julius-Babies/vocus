@@ -1,4 +1,5 @@
 [versions]
+clikt = "5.0.3"
 docker-java = "3.6.0"
 kaml = "0.92.0"
 koin = "4.1.0"
@@ -8,6 +9,8 @@ kotlinx-serialization = "1.9.0"
 postgresql = "42.7.7"
 
 [libraries]
+clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }
+
 docker-java-core = { module = "com.github.docker-java:docker-java-core", version.ref = "docker-java" }
 docker-java-transport-zerodep = { module = "com.github.docker-java:docker-java-transport-zerodep", version.ref = "docker-java" }
 

@@ -7,11 +7,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
 
 @Serializable
 data class ApplicationConfig(
-    @SerialName("projects") val projects: List<ProjectConfig> = listOf()
+    @SerialName("projects") var projects: List<ProjectConfig> = listOf()
 )
 
 private val configFile = applicationDirectory.resolve("config.yaml")
@@ -21,13 +21,8 @@ fun getConfig(): ApplicationConfig {
     return Yaml.default.decodeFromString(content)
 }
 
-private val json = Json {
-    ignoreUnknownKeys = true
-    prettyPrint = true
-}
-
 internal fun writeConfig(config: ApplicationConfig) {
-    configFile.writeText(json.encodeToString(config))
+    configFile.writeText(Yaml.default.encodeToString(config))
 }
 
 private val updateMutex = Mutex()
