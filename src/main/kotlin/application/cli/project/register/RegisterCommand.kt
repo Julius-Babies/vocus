@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.types.path
 import dev.babies.application.config.ProjectConfig
 import dev.babies.application.config.getConfig
 import dev.babies.application.config.updateConfig
+import dev.babies.application.init.initHosts
 import dev.babies.application.init.initPostgres16
 import dev.babies.application.init.initSsl
 import dev.babies.utils.aqua
@@ -79,5 +80,6 @@ class RegisterCommand : SuspendingCliktCommand("register") {
 
         if (config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Postgres && it.version == "16" } != null) initPostgres16()
         initSsl()
+        initHosts()
     }
 }

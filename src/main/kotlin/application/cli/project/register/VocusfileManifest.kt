@@ -7,7 +7,7 @@ import kotlinx.serialization.decodeFromString
 import java.io.File
 
 @Serializable
-internal data class VocusfileManifest(
+data class VocusfileManifest(
     @SerialName("name") val name: String,
     @SerialName("additional_subdomains") val additionalSubdomains: List<String> = emptyList(),
     @SerialName("infrastructure") val infrastructure: Infrastructure?
