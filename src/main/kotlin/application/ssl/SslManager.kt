@@ -26,6 +26,18 @@ class SslManager {
 
     val sslDirectory = applicationDirectory.resolve("ssl").apply { mkdirs() }
 
+    /**
+     * Get all certificates in the ssl directory.
+     */
+    fun getCertificates(): List<String> {
+        return sslDirectory.listFiles()
+            .orEmpty()
+            .filter { it.isDirectory }
+            .filter { it.resolve("cert.crt").exists() }
+            .filter { it.resolve("cert.key").exists() }
+            .map { it.name }
+    }
+
     fun getRootCaCertificateAndKey(): Pair<X509Certificate, PrivateKey> {
         val rootCaCertFile = sslDirectory.resolve("root-ca.crt")
         val rootCaKeyFile = sslDirectory.resolve("root-ca.key")

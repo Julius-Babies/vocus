@@ -75,7 +75,8 @@ class HostsManager(): KoinComponent {
     }
 
     fun addHost(hostNames: Set<String>) {
-        val hostNames = hostNames.map { it.lowercase().removeSuffix(".local.vocus.dev") }.toSet()
+        val hostNames = hostNames
+            .map { it.lowercase().removeSuffix(".local.vocus.dev") }.toSet()
         val content = getHostsContent()
         if (content == null) {
             val block = "$BLOCK_START\n$BLOCK_END\n"
@@ -106,6 +107,8 @@ class HostsManager(): KoinComponent {
                 Regex("$BLOCK_START[\\s\\S]*?$BLOCK_END"),
                 "$BLOCK_START\n$newContent\n$BLOCK_END"
             )
+            .dropLastWhile { it == '\n' || it == '\r' || it == ' ' }
+            .plus("\n")
         if (updatedHostsFileContent == hostsFileContent) return
         tempHostFile.writeText(updatedHostsFileContent)
 
@@ -134,6 +137,8 @@ class HostsManager(): KoinComponent {
                 Regex("$BLOCK_START[\\s\\S]*?$BLOCK_END"),
                 if (newContent.isBlank()) "" else "$BLOCK_START\n$newContent\n$BLOCK_END"
             )
+            .dropLastWhile { it == '\n' || it == '\r' || it == ' ' }
+            .plus("\n")
         if (updatedHostsFileContent == hostsFileContent) return
         tempHostFile.writeText(updatedHostsFileContent)
 
@@ -142,7 +147,7 @@ class HostsManager(): KoinComponent {
 
     fun getHosts(): Set<String> {
         val content = getHostsContent() ?: return emptySet()
-        return content.mapNotNull { it.split(" ").getOrNull(1)?.substringBefore(".local.vocus.dev") }.toSet()
+        return content.mapNotNull { it.split(" ").getOrNull(1) }.toSet()
     }
 
     private fun updateHosts(tempFile: File): Boolean {

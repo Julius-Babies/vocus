@@ -62,7 +62,7 @@ class RegisterCommand : SuspendingCliktCommand("register") {
             val existingProject = applicationConfig.projects.firstOrNull { it.name == config.name }
             applicationConfig.projects = (applicationConfig.projects - existingProject).filterNotNull()
             applicationConfig.projects += ProjectConfig(
-                name = config.name,
+                name = config.name.lowercase(),
                 additionalSubdomains = config.additionalSubdomains,
                 infrastructure = ProjectConfig.Infrastructure(
                     databases = ProjectConfig.Infrastructure.Databases(

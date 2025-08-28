@@ -136,12 +136,6 @@ class Postgres16(
         return State.Created
     }
 
-    enum class State {
-        Created,
-        Invalid,
-        Missing
-    }
-
     private suspend fun getConnection(): Connection {
         var connection: Connection? = null
         waitUntil("Connection ready") {

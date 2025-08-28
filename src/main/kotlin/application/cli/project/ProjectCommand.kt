@@ -2,6 +2,7 @@ package dev.babies.application.cli.project
 
 import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.core.subcommands
+import dev.babies.application.cli.project.item.ProjectItemCommand
 import dev.babies.application.cli.project.register.RegisterCommand
 import dev.babies.application.config.getConfig
 import dev.babies.utils.blue
@@ -23,6 +24,10 @@ class ProjectCommand : SuspendingCliktCommand("project") {
     }
 
     init {
-        subcommands(RegisterCommand())
+        val projects = getConfig().projects.map { it.name }
+        subcommands(
+            RegisterCommand(),
+            *projects.map { ProjectItemCommand(it) }.toTypedArray()
+        )
     }
 }
