@@ -1,0 +1,5 @@
+http:
+  routers:
+    dashboard:
+      rule: Host(`traefik.infra.local.vocus.dev`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      service: api@internal

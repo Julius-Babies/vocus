@@ -1,179 +1,249 @@
 package dev.babies.application.ssl
 
 import dev.babies.applicationDirectory
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
 import org.bouncycastle.asn1.x500.X500Name
-import org.bouncycastle.asn1.x509.Extension
-import org.bouncycastle.asn1.x509.GeneralName
+import org.bouncycastle.asn1.x509.*
 import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.X509v3CertificateBuilder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
-import org.bouncycastle.openssl.PEMEncryptedKeyPair
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.openssl.PEMKeyPair
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter
+import org.bouncycastle.operator.ContentSigner
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
-import java.io.File
-import java.io.FileReader
-import java.io.FileWriter
+import java.io.*
 import java.math.BigInteger
 import java.security.KeyPairGenerator
+import java.security.KeyStore
 import java.security.PrivateKey
 import java.security.SecureRandom
+import java.security.Security
+import java.security.cert.CertPath
+import java.security.cert.CertPathValidator
+import java.security.cert.CertificateFactory
+import java.security.cert.PKIXParameters
 import java.security.cert.X509Certificate
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.*
 
 class SslManager {
-
     val sslDirectory = applicationDirectory.resolve("ssl").apply { mkdirs() }
 
     /**
-     * Get all certificates in the ssl directory.
+     * Loads a PrivateKey from a PEM file
+     */
+    private fun loadPrivateKey(pemFile: File): PrivateKey = FileInputStream(pemFile).use { fis ->
+        PEMParser(InputStreamReader(fis)).use { parser ->
+            val obj = parser.readObject()
+            val converter = JcaPEMKeyConverter().setProvider("BC")
+            when (obj) {
+                is PEMKeyPair -> converter.getPrivateKey(obj.privateKeyInfo)
+                is PrivateKeyInfo -> converter.getPrivateKey(obj)
+                is org.bouncycastle.openssl.PEMEncryptedKeyPair -> throw IllegalStateException("Encrypted key not supported")
+                else -> throw IllegalStateException("Unsupported key PEM object: ${obj?.javaClass}")
+            }
+        }
+    }
+
+    /**
+     * Loads an X509 certificate from a PEM file
+     */
+    private fun loadCertificate(pemFile: File): X509Certificate = FileInputStream(pemFile).use { fis ->
+        PEMParser(InputStreamReader(fis)).use { parser ->
+            when (val obj = parser.readObject()) {
+                is X509CertificateHolder -> JcaX509CertificateConverter().setProvider("BC").getCertificate(obj)
+                else -> throw IllegalStateException("Unsupported cert PEM object: ${obj?.javaClass}")
+            }
+        }
+    }
+
+    /**
+     * Writes an object to a PEM file
+     */
+    private fun writePem(file: File, obj: Any) {
+        FileWriter(file).use { fw ->
+            JcaPEMWriter(fw).use { pw -> pw.writeObject(obj) }
+        }
+    }
+
+    // --- Main functions ---
+
+    /**
+     * Lists all existing certificates
      */
     fun getCertificates(): List<String> {
         return sslDirectory.listFiles()
+            ?.filter { it.isDirectory && it.resolve("cert.crt").exists() && it.resolve("cert.key").exists() }
+            ?.map { it.name }
             .orEmpty()
-            .filter { it.isDirectory }
-            .filter { it.resolve("cert.crt").exists() }
-            .filter { it.resolve("cert.key").exists() }
-            .map { it.name }
     }
 
+    /**
+     * Generates or loads Root CA and key
+     */
     fun getRootCaCertificateAndKey(): Pair<X509Certificate, PrivateKey> {
-        val rootCaCertFile = sslDirectory.resolve("root-ca.crt")
-        val rootCaKeyFile = sslDirectory.resolve("root-ca.key")
-        if (!rootCaCertFile.exists() || !rootCaKeyFile.exists()) {
-            val keyGen = KeyPairGenerator.getInstance("RSA")
-            keyGen.initialize(4096, SecureRandom())
-            val keyPair = keyGen.generateKeyPair()
-            val privateKey = keyPair.private
-            val publicKey = keyPair.public
+        Security.addProvider(BouncyCastleProvider())
+        val certFile = sslDirectory.resolve("root-ca.crt")
+        val keyFile = sslDirectory.resolve("root-ca.key")
 
-            val issuer = X500Name("CN=VocusRoot, O=VocusDev, C=DE")
-            val now = Date()
-            val validity = 365L * 24 * 60 * 60 * 1000 * 50 // 50 Years
-            val notAfter = Date(now.time + validity)
-            val serial = BigInteger(64, SecureRandom())
+        if (!certFile.exists() || !keyFile.exists()) {
+            val keyPairGenerator = KeyPairGenerator.getInstance("RSA", "BC")
+            keyPairGenerator.initialize(4096)
+            val keyPair = keyPairGenerator.generateKeyPair()
 
-            val certBuilder = JcaX509v3CertificateBuilder(
-                issuer,
-                serial,
-                now,
-                notAfter,
-                issuer,
-                publicKey
+            val startDate = Date()
+            val endDate = Date(startDate.time + 10L * 365 * 24 * 60 * 60 * 1000)
+
+            val distinguishedName = "CN=VocusRoot, O=VocusDev, C=DE"
+            val x500Name = X500Name(distinguishedName)
+            val serialNumber = BigInteger.valueOf(System.currentTimeMillis())
+
+            val certBuilder: X509v3CertificateBuilder = JcaX509v3CertificateBuilder(
+                x500Name,
+                serialNumber,
+                startDate,
+                endDate,
+                x500Name,
+                keyPair.public
             )
-            writeCertificateAndKeyToFiles(privateKey, certBuilder, rootCaCertFile, rootCaKeyFile, privateKey)
+
+            // Mark root CA as CA
+            certBuilder.addExtension(Extension.basicConstraints, true, BasicConstraints(true))
+            certBuilder.addExtension(Extension.keyUsage, true, KeyUsage(KeyUsage.keyCertSign or KeyUsage.cRLSign))
+
+            val signer = JcaContentSignerBuilder("SHA256withRSA").setProvider("BC").build(keyPair.private)
+            val rootHolder = certBuilder.build(signer)
+            val rootCertificate = JcaX509CertificateConverter().setProvider("BC").getCertificate(rootHolder)
+
+            writePem(certFile, rootCertificate)
+            writePem(keyFile, keyPair.private)
         }
 
-        val certificate = FileReader(rootCaCertFile).use { reader ->
-            PEMParser(reader).use { pemParser ->
-                val certHolder = pemParser.readObject() as X509CertificateHolder
-                JcaX509CertificateConverter().getCertificate(certHolder)
-            }
-        }
-        val privateKey = FileReader(rootCaKeyFile).use { reader ->
-            PEMParser(reader).use { pemParser ->
-                when (val obj = pemParser.readObject()) {
-                    is org.bouncycastle.openssl.PEMKeyPair -> {
-                        val kp = JcaPEMKeyConverter().getKeyPair(obj)
-                        kp.private
-                    }
-                    is PEMEncryptedKeyPair -> {
-                        throw IllegalStateException("Verschlüsselte Schlüssel werden nicht unterstützt.")
-                    }
-                    is PrivateKey -> obj
-                    else -> throw IllegalStateException("Unbekanntes Schlüsselformat.")
-                }
-            }
-        }
+        val privateKey = loadPrivateKey(keyFile)
+        val certificate = loadCertificate(certFile)
         return certificate to privateKey
     }
 
+    /**
+     * Creates or updates a certificate for the given domains
+     */
     fun createOrUpdateCertificateForDomains(commonName: String, alternativeNames: Set<String>) {
-        require(commonName.isNotBlank()) { "commonName cannot be blank" }
-        require(alternativeNames.all { it.isNotBlank() }) { "alternativeNames cannot contain blank values" }
-        require(!commonName.startsWith("*")) { "commonName cannot be a wildcard" }
+        require(commonName.isNotBlank() && !commonName.startsWith("*"))
+        require(alternativeNames.all { it.isNotBlank() })
+        Security.addProvider(BouncyCastleProvider())
 
-        val certificateDirectory = sslDirectory.resolve(commonName).apply { mkdirs() }
-        val certificateFile = certificateDirectory.resolve("cert.crt")
-        val keyFile = certificateDirectory.resolve("cert.key")
+        val certDir = sslDirectory.resolve(commonName).apply { mkdirs() }
+        val certFile = certDir.resolve("cert.crt")
+        val keyFile = certDir.resolve("cert.key")
+        val fullchainFile = certDir.resolve("fullchain.pem")
 
         val allDomains = setOf(commonName) + alternativeNames
         var needsGeneration = true
-        if (certificateFile.exists() && keyFile.exists()) {
-            try {
-                val cert = FileReader(certificateFile).use { reader ->
-                    PEMParser(reader).use { pemParser ->
-                        val certHolder = pemParser.readObject() as X509CertificateHolder
-                        JcaX509CertificateConverter().getCertificate(certHolder)
-                    }
-                }
-                val san = cert.subjectAlternativeNames?.mapNotNull {
-                    it[1]?.toString()
-                }?.toSet() ?: emptySet()
-                if (allDomains.all { it in san }) {
-                    needsGeneration = false
-                }
-            } catch (_: Exception) {
-                needsGeneration = true
-            }
-        }
-        if (needsGeneration) {
-            val (caCert, caKey) = getRootCaCertificateAndKey()
-            val keyGen = KeyPairGenerator.getInstance("RSA")
-            keyGen.initialize(4096, SecureRandom())
-            val keyPair = keyGen.generateKeyPair()
-            val privateKey = keyPair.private
-            val publicKey = keyPair.public
 
-            val issuer = X500Name(caCert.subjectX500Principal.name)
+        if (certFile.exists() && keyFile.exists()) {
+            try {
+                val cert = loadCertificate(certFile)
+                val san = cert.subjectAlternativeNames?.mapNotNull { it[1]?.toString() }?.toSet() ?: emptySet()
+                if (allDomains.all { it in san }) needsGeneration = false
+            } catch (_: Exception) { needsGeneration = true }
+        }
+
+        if (needsGeneration) {
+            certFile.delete()
+            keyFile.delete()
+            val (rootCert, rootKey) = getRootCaCertificateAndKey()
+            val rootHolder = X509CertificateHolder(rootCert.encoded)
+
+            fun contentSignerFor(privateKey: PrivateKey): ContentSigner {
+                val sigAlg = when (privateKey.algorithm) {
+                    "RSA" -> "SHA256withRSA"
+                    "EC", "ECDSA" -> "SHA256withECDSA"
+                    else -> "SHA256withRSA"
+                }
+                return JcaContentSignerBuilder(sigAlg).setProvider(BouncyCastleProvider()).build(privateKey)
+            }
+
+            val kpg = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME)
+            kpg.initialize(2048)
+            val kp = kpg.generateKeyPair()
+
             val subject = X500Name("CN=$commonName, O=VocusDev, C=DE")
-            val now = Date()
-            val validity = 365L * 24 * 60 * 60 * 1000 * 5 // 5 Jahre
-            val notAfter = Date(now.time + validity)
+            val issuer = rootHolder.subject
             val serial = BigInteger(64, SecureRandom())
+            val notBefore = Date.from(Instant.now().minus(1, ChronoUnit.DAYS))
+            val notAfter = Date.from(Instant.now().plus(365, ChronoUnit.DAYS))
 
             val certBuilder = JcaX509v3CertificateBuilder(
                 issuer,
                 serial,
-                now,
+                notBefore,
                 notAfter,
                 subject,
-                publicKey
+                kp.public
             )
-            val sanList = allDomains.map {
-                GeneralName(GeneralName.dNSName, it)
+
+            certBuilder.addExtension(Extension.basicConstraints, true, BasicConstraints(false))
+            val keyUsage = KeyUsage(KeyUsage.digitalSignature or KeyUsage.keyEncipherment)
+            certBuilder.addExtension(Extension.keyUsage, true, keyUsage)
+            val eku = ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth)
+            certBuilder.addExtension(Extension.extendedKeyUsage, false, eku)
+
+            val names = mutableListOf<GeneralName>()
+            names.add(GeneralName(GeneralName.dNSName, commonName))
+            for (sd in allDomains) {
+                if (sd.isNotBlank()) {
+                    val dns = if (sd.contains('.')) sd else "$sd.$commonName"
+                    names.add(GeneralName(GeneralName.dNSName, dns))
+                }
             }
-            val sanSeq = org.bouncycastle.asn1.x509.GeneralNames(sanList.toTypedArray())
-            certBuilder.addExtension(
-                Extension.subjectAlternativeName,
-                false,
-                sanSeq
-            )
-            writeCertificateAndKeyToFiles(caKey, certBuilder, certificateFile, keyFile, privateKey)
+            val san = GeneralNames(names.toTypedArray())
+            certBuilder.addExtension(Extension.subjectAlternativeName, false, san)
+
+            val signer: ContentSigner = contentSignerFor(rootKey)
+            val holder: X509CertificateHolder = certBuilder.build(signer)
+
+            writePem(certFile, holder)
+            val privateKeyInfo = PrivateKeyInfo.getInstance(kp.private.encoded)
+            writePem(keyFile, privateKeyInfo)
+
+            FileWriter(fullchainFile).use { fw ->
+                JcaPEMWriter(fw).use { pw ->
+                    pw.writeObject(holder)
+                    pw.writeObject(rootHolder)
+                }
+            }
+
+            verifyCertificateChain(fullchainFile.absolutePath, sslDirectory.resolve("root-ca.crt").absolutePath)
         }
     }
 
-    private fun writeCertificateAndKeyToFiles(
-        caKey: PrivateKey,
-        certBuilder: JcaX509v3CertificateBuilder,
-        certificateFile: File,
-        keyFile: File,
-        privateKey: PrivateKey?
-    ) {
-        val signer = JcaContentSignerBuilder("SHA256withRSA").build(caKey)
-        val certHolder = certBuilder.build(signer)
-        val certificate = JcaX509CertificateConverter().getCertificate(certHolder)
+    /**
+     * Validates the certificate chain against the Root CA
+     */
+    fun verifyCertificateChain(fullchainPath: String, rootCertPath: String) {
+        try {
+            val cf = CertificateFactory.getInstance("X.509")
+            val fullChainCerts = FileInputStream(fullchainPath).use { cf.generateCertificates(it) }
+            val rootCert = FileInputStream(rootCertPath).use { cf.generateCertificate(it) as X509Certificate }
 
-        FileWriter(certificateFile).use { fw ->
-            JcaPEMWriter(fw).use { pemWriter ->
-                pemWriter.writeObject(certificate)
-            }
-        }
-        FileWriter(keyFile).use { fw ->
-            JcaPEMWriter(fw).use { pemWriter ->
-                pemWriter.writeObject(privateKey)
-            }
+            val ks = KeyStore.getInstance(KeyStore.getDefaultType())
+            ks.load(null, null)
+            ks.setCertificateEntry("root", rootCert)
+
+            val pkixParams = PKIXParameters(ks)
+            pkixParams.isRevocationEnabled = false
+
+            val certPath: CertPath = cf.generateCertPath(fullChainCerts.toList())
+
+            val validator = CertPathValidator.getInstance("PKIX")
+            validator.validate(certPath, pkixParams)
+        } catch (e: Exception) {
+            throw e
         }
     }
 }

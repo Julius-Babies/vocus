@@ -1,5 +1,6 @@
 package dev.babies.application.reverseproxy
 
+import com.charleskorn.kaml.Yaml
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.model.Bind
 import com.github.dockerjava.api.model.ExposedPort
@@ -15,6 +16,7 @@ import dev.babies.utils.docker.isContainerRunning
 import dev.babies.utils.docker.prepareImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
@@ -27,6 +29,10 @@ class TraefikService : AbstractDockerService("traefik"), KoinComponent {
 
     private val traefikDirectory = applicationDirectory
         .resolve("traefik")
+        .apply { mkdirs() }
+
+    private val traefikDynamicConfig = traefikDirectory
+        .resolve("dynamic")
         .apply { mkdirs() }
 
     val traefikStaticConfig = traefikDirectory.resolve("traefik.yml")
@@ -51,6 +57,9 @@ class TraefikService : AbstractDockerService("traefik"), KoinComponent {
 
         traefikDirectory.deleteRecursively()
         traefikDirectory.mkdirs()
+        traefikDynamicConfig.mkdirs()
+
+        writeConfigs()
 
         val exposedHttpPort = ExposedPort.tcp(80)
         val exposedDashboardPort = ExposedPort.tcp(8080)
@@ -68,6 +77,7 @@ class TraefikService : AbstractDockerService("traefik"), KoinComponent {
         traefikStaticConfig.writeText(defaultConfigFile)
 
         val staticConfigurationBinding = Bind.parse("${traefikStaticConfig.absolutePath}:/etc/traefik/traefik.yml")
+        val dynamicConfigurationBinding = Bind.parse("${traefikDynamicConfig.absolutePath}:/etc/traefik/dynamic/")
         val certificatesBinding = Bind.parse("${sslManager.sslDirectory.absolutePath}:/certificates:ro")
 
         dockerClient
@@ -76,7 +86,7 @@ class TraefikService : AbstractDockerService("traefik"), KoinComponent {
             .withHostConfig(
                 HostConfig()
                     .withPortBindings(portBindings)
-                    .withBinds(staticConfigurationBinding, certificatesBinding)
+                    .withBinds(staticConfigurationBinding, dynamicConfigurationBinding, certificatesBinding)
                     .withNetworkMode(dockerNetwork.networkName)
             )
             .withLabels(
@@ -85,7 +95,39 @@ class TraefikService : AbstractDockerService("traefik"), KoinComponent {
             .exec()
     }
 
+    private fun writeDashboardConfig() {
+        val dashboardConfigContent = {}::class.java.classLoader.getResourceAsStream("traefik/dashboard.yml")
+            ?.bufferedReader(Charsets.UTF_8)
+            ?.readText()
+
+        if (dashboardConfigContent != null) {
+            val dashboardConfigFile = traefikDynamicConfig.resolve("dashboard.yml")
+            if (!dashboardConfigFile.exists()) dashboardConfigFile.writeText(dashboardConfigContent)
+        }
+    }
+
+    private fun writeSslConfigs() {
+        val config = TraefikTlsConfig(
+            tls = TraefikTlsConfig.Tls(
+                certificates = sslManager.getCertificates().map { certificateName ->
+                    TraefikTlsConfig.Tls.Certificate(
+                        certFile = "/certificates/$certificateName/fullchain.pem",
+                        keyFile = "/certificates/$certificateName/cert.key"
+                    )
+                }
+            )
+        )
+        val certificateConfigFile = traefikDynamicConfig.resolve("certificates.yml")
+        certificateConfigFile.writeText(Yaml.default.encodeToString(config))
+    }
+
+    private fun writeConfigs() {
+        writeDashboardConfig()
+        writeSslConfigs()
+    }
+
     override suspend fun start() {
+        writeConfigs()
         if (dockerClient.isContainerRunning(containerName)) return
         if (getState() != State.Created) throw IllegalStateException()
         dockerClient.startContainerCmd(containerName).exec()
