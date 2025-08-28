@@ -15,7 +15,6 @@ import kotlin.collections.drop
 import kotlin.collections.dropLast
 import kotlin.collections.dropLastWhile
 import kotlin.collections.dropWhile
-import kotlin.collections.firstOrNull
 import kotlin.collections.groupBy
 import kotlin.collections.joinToString
 import kotlin.collections.map
@@ -92,7 +91,7 @@ class HostsManager(): KoinComponent {
         val newContent = content
             .plus(hostNames.map { "127.0.0.1 $it.local.vocus.dev" })
             .distinct()
-            .groupBy { it.split(" ").firstOrNull()?.substringBefore(".local.vocus.dev")?.substringAfterLast(".") }
+            .groupBy { it.split(" ").getOrNull(1)?.substringBefore(".local.vocus.dev")?.substringAfterLast(".") }
             .minus(null)
             .toList()
             .sortedBy { it.first }
@@ -122,7 +121,7 @@ class HostsManager(): KoinComponent {
 
         val newContent = content
             .filter { line -> hostNames.none { hostName -> line.contains("$hostName.local.vocus.dev") } }
-            .groupBy { it.split(" ").firstOrNull()?.substringBefore(".local.vocus.dev")?.substringAfterLast(".") }
+            .groupBy { it.split(" ").getOrNull(1)?.substringBefore(".local.vocus.dev")?.substringAfterLast(".") }
             .minus(null)
             .toList()
             .sortedBy { it.first }

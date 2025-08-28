@@ -10,10 +10,17 @@ private object InitHosts: KoinComponent {
     val hostsManager by inject<HostsManager>()
 }
 
+val vocusHosts = setOf(
+    "pgadmin.infra.local.vocus.dev",
+    "traefik.infra.local.vocus.dev",
+    "rabbitmq.infra.local.vocus.dev"
+)
+
 fun initHosts() {
     val hosts = getConfig().projects
         .flatMap { listOf(it.name.lowercase()) + it.additionalSubdomains.map { sub -> "${sub.lowercase()}.${it.name.lowercase()}" } }.toSet()
         .map { "$it.local.vocus.dev" }
+        .plus(vocusHosts)
         .toSet()
     val existing = InitHosts.hostsManager.getHosts()
     val newsHosts = hosts - existing
