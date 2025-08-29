@@ -26,5 +26,4 @@ suspend fun initPostgres16() {
         databasesToCreate.forEach { database -> InitPostgres16.postgres16.createDatabase(database) }
         databasesToDelete.forEach { database -> InitPostgres16.postgres16.deleteDatabase(database) }
     }
-    InitPostgres16.postgres16.stop()
 }

@@ -4,9 +4,11 @@ import dev.babies.application.docker.AbstractDockerService
 import dev.babies.applicationDirectory
 
 abstract class AbstractPostgresDatabase(
-    containerName: String
+    containerName: String,
+    image: String
 ) : AbstractDockerService(
-    containerName
+    containerName,
+    image
 ) {
     val dataDirectory = applicationDirectory
         .resolve("data").apply { mkdirs() }

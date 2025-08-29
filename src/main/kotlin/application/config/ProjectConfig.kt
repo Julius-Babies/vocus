@@ -1,5 +1,7 @@
 package dev.babies.application.config
 
+import dev.babies.application.cli.project.item.module.item.SetStateCommand
+import dev.babies.utils.domain.nameToDomain
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -7,8 +9,22 @@ import kotlinx.serialization.Serializable
 data class ProjectConfig(
     @SerialName("name") var name: String,
     @SerialName("infrastructure") var infrastructure: Infrastructure = Infrastructure(),
-    @SerialName("additional_subdomains") var additionalSubdomains: List<String> = listOf()
+    @SerialName("modules") var modules: Map<String, Module> = mapOf()
 ) {
+
+    val projectDomain = "${name.nameToDomain()}.local.vocus.dev"
+
+    fun getAllProjectDomains(): Set<String> {
+        val domains = mutableSetOf<String>()
+        domains.add(projectDomain)
+        modules.values.forEach { module ->
+            module.routes.forEach forEachRoute@{ route ->
+                if (route.subdomain.isNullOrBlank()) return@forEachRoute
+                domains.add(route.subdomain.nameToDomain() + "." + projectDomain)
+            }
+        }
+        return domains
+    }
 
     @Serializable
     data class Infrastructure(
@@ -22,6 +38,41 @@ data class ProjectConfig(
             data class Postgres16(
                 @SerialName("databases") var databases: List<String> = listOf()
             )
+        }
+    }
+
+    @Serializable
+    data class Module(
+        @SerialName("docker_config") val dockerConfig: DockerConfig?,
+        @SerialName("routes") val routes: List<Route> = emptyList(),
+        @SerialName("current_state") val currentState: SetStateCommand.State = SetStateCommand.State.Off
+
+    ) {
+
+        @Serializable
+        data class DockerConfig(
+            @SerialName("image") val image: String,
+            @SerialName("exposed_ports") val exposedPorts: List<Int> = listOf()
+        )
+
+        @Serializable
+        data class Route(
+            @SerialName("subdomain") val subdomain: String? = null,
+            @SerialName("path_prefixes") val pathPrefixes: Set<String> = setOf("/"),
+            @SerialName("ports") val ports: Ports
+        ) {
+
+            @Serializable
+            data class Ports(
+                @SerialName("docker_port") val docker: Int?,
+                @SerialName("host_port") val host: Int?
+            ) {
+                init {
+                    require(host != null || docker != null) {
+                        "At least one port must be set, either host or docker."
+                    }
+                }
+            }
         }
     }
 }

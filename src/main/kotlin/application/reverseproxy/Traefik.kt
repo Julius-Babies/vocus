@@ -1,7 +1,6 @@
 package dev.babies.application.reverseproxy
 
 import com.charleskorn.kaml.Yaml
-import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.model.Bind
 import com.github.dockerjava.api.model.ExposedPort
 import com.github.dockerjava.api.model.HostConfig
@@ -14,16 +13,15 @@ import dev.babies.applicationDirectory
 import dev.babies.utils.docker.doesContainerExist
 import dev.babies.utils.docker.isContainerRunning
 import dev.babies.utils.docker.prepareImage
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 
-class TraefikService : AbstractDockerService("traefik"), KoinComponent {
-
-    private val dockerClient by inject<DockerClient>()
+class TraefikService : AbstractDockerService(
+    containerName = "traefik",
+    image = "traefik:v3.5.1"
+), KoinComponent {
     private val sslManager by inject<SslManager>()
     private val dockerNetwork by inject<DockerNetwork>(named(VOCUS_DOCKER_NETWORK_DI_KEY))
 
@@ -35,9 +33,8 @@ class TraefikService : AbstractDockerService("traefik"), KoinComponent {
         .resolve("dynamic")
         .apply { mkdirs() }
 
-    val traefikStaticConfig = traefikDirectory.resolve("traefik.yml")
+    val traefikStaticConfig = traefikDirectory.resolve("traefik.yaml")
 
-    val image = "traefik:v3.5.0"
     override suspend fun createIfMissing() {
         val state = getState()
         if (state == State.Created) return
@@ -59,26 +56,23 @@ class TraefikService : AbstractDockerService("traefik"), KoinComponent {
         traefikDirectory.mkdirs()
         traefikDynamicConfig.mkdirs()
 
-        writeConfigs()
-
         val exposedHttpPort = ExposedPort.tcp(80)
-        val exposedDashboardPort = ExposedPort.tcp(8080)
         val exposedHttpsPort = ExposedPort.tcp(443)
 
         val portBindings = Ports()
         portBindings.bind(exposedHttpPort, Ports.Binding.bindPort(80))
-        portBindings.bind(exposedDashboardPort, Ports.Binding.bindPort(8080))
         portBindings.bind(exposedHttpsPort, Ports.Binding.bindPort(443))
 
-        val defaultConfigFile = {}::class.java.classLoader.getResourceAsStream("traefik/traefik.yml")
+        val defaultConfigFile = {}::class.java.classLoader.getResourceAsStream("traefik/traefik.yaml")
             ?.bufferedReader(Charsets.UTF_8)
             ?.readText()!!
 
         traefikStaticConfig.writeText(defaultConfigFile)
 
-        val staticConfigurationBinding = Bind.parse("${traefikStaticConfig.absolutePath}:/etc/traefik/traefik.yml")
+        val staticConfigurationBinding = Bind.parse("${traefikStaticConfig.absolutePath}:/etc/traefik/traefik.yaml")
         val dynamicConfigurationBinding = Bind.parse("${traefikDynamicConfig.absolutePath}:/etc/traefik/dynamic/")
         val certificatesBinding = Bind.parse("${sslManager.sslDirectory.absolutePath}:/certificates:ro")
+        val dockerSocketBinding = Bind.parse("/var/run/docker.sock:/var/run/docker.sock")
 
         dockerClient
             .createContainerCmd(image)
@@ -86,7 +80,7 @@ class TraefikService : AbstractDockerService("traefik"), KoinComponent {
             .withHostConfig(
                 HostConfig()
                     .withPortBindings(portBindings)
-                    .withBinds(staticConfigurationBinding, dynamicConfigurationBinding, certificatesBinding)
+                    .withBinds(staticConfigurationBinding, dynamicConfigurationBinding, certificatesBinding, dockerSocketBinding)
                     .withNetworkMode(dockerNetwork.networkName)
             )
             .withLabels(
@@ -96,13 +90,13 @@ class TraefikService : AbstractDockerService("traefik"), KoinComponent {
     }
 
     private fun writeDashboardConfig() {
-        val dashboardConfigContent = {}::class.java.classLoader.getResourceAsStream("traefik/dashboard.yml")
+        val dashboardConfigContent = {}::class.java.classLoader.getResourceAsStream("traefik/dashboard.yaml")
             ?.bufferedReader(Charsets.UTF_8)
             ?.readText()
 
         if (dashboardConfigContent != null) {
             val dashboardConfigFile = traefikDynamicConfig.resolve("dashboard.yml")
-            if (!dashboardConfigFile.exists()) dashboardConfigFile.writeText(dashboardConfigContent)
+            dashboardConfigFile.writeText(dashboardConfigContent)
         }
     }
 
@@ -127,10 +121,10 @@ class TraefikService : AbstractDockerService("traefik"), KoinComponent {
     }
 
     override suspend fun start() {
-        writeConfigs()
         if (dockerClient.isContainerRunning(containerName)) return
         if (getState() != State.Created) throw IllegalStateException()
         dockerClient.startContainerCmd(containerName).exec()
+        writeConfigs()
     }
 
     override suspend fun stop() {
@@ -139,17 +133,43 @@ class TraefikService : AbstractDockerService("traefik"), KoinComponent {
         dockerClient.stopContainerCmd(containerName).exec()
     }
 
-    suspend fun getState(): State {
-        withContext(Dispatchers.IO) {
-            val databaseContainer = dockerClient
-                .listContainersCmd()
-                .withShowAll(true)
-                .exec()
-                .firstOrNull {containerName in it.names.map { name -> name.dropWhile { c -> c == '/' } } } ?: return@withContext State.Missing
-            if (databaseContainer.image != image) return@withContext State.Invalid
-            if (databaseContainer.labels["com.docker.compose.project"] != "vocus") return@withContext State.Invalid
-            return@withContext null
-        }?.let { return it }
-        return State.Created
+    fun addRouter(
+        name: String,
+        host: String,
+        pathPrefixes: Set<String> = setOf("/"),
+        routerDestination: RouterDestination
+    ) {
+        val file = traefikDynamicConfig.resolve("$name.yaml")
+        val content = when (routerDestination) {
+            is RouterDestination.HostPort -> {
+                {}::class.java.classLoader.getResourceAsStream("traefik/host-port-service.yaml")
+                    ?.bufferedReader(Charsets.UTF_8)
+                    ?.readText()!!
+                    .replace("NAME", name)
+                    .replace("HOST", host)
+                    .replace("PATHPREFIX", pathPrefixes.joinToString(" || ") { "PathPrefix(`$it`)" })
+                    .replace("PORT", routerDestination.port.toString())
+            }
+            is RouterDestination.ContainerPort -> {
+                {}::class.java.classLoader.getResourceAsStream("traefik/host-port-service.yaml")
+                    ?.bufferedReader(Charsets.UTF_8)
+                    ?.readText()!!
+                    .replace("DESTINATION_HOST", routerDestination.containerName)
+                    .replace("NAME", name)
+                    .replace("HOST", host)
+                    .replace("PATHPREFIX", pathPrefixes.joinToString(" || ") { "PathPrefix(`$it`)" })
+                    .replace("PORT", routerDestination.port.toString())
+            }
+        }
+        file.writeText(content)
     }
+
+    fun removeRouter(name: String) {
+        traefikDynamicConfig.resolve("$name.yaml").delete()
+    }
+}
+
+sealed class RouterDestination {
+    data class HostPort(val port: Int): RouterDestination()
+    data class ContainerPort(val containerName: String, val port: Int): RouterDestination()
 }

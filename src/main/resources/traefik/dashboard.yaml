@@ -1,5 +1,18 @@
 http:
   routers:
-    dashboard:
-      rule: Host(`traefik.infra.local.vocus.dev`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+    dashboard-api-router:
+      rule: "Host(`traefik.infra.local.vocus.dev`) && PathPrefix(`/api`)"
+      entryPoints:
+        - websecure
       service: api@internal
+      middlewares:
+        - dashboard_stripprefix@internal
+      tls: true
+    dashboard-router:
+      rule: "Host(`traefik.infra.local.vocus.dev`) && PathPrefix(`/`)"
+      entryPoints:
+        - websecure
+      service: dashboard@internal
+      middlewares:
+        - dashboard_stripprefix@internal
+      tls: true

@@ -2,6 +2,7 @@ package dev.babies.application.init
 
 import dev.babies.application.config.getConfig
 import dev.babies.application.os.host.HostsManager
+import dev.babies.utils.domain.withLocalVocusSuffix
 import dev.babies.utils.gray
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -18,8 +19,8 @@ val vocusHosts = setOf(
 
 fun initHosts() {
     val hosts = getConfig().projects
-        .flatMap { listOf(it.name.lowercase()) + it.additionalSubdomains.map { sub -> "${sub.lowercase()}.${it.name.lowercase()}" } }.toSet()
-        .map { "$it.local.vocus.dev" }
+        .flatMap { projectConfig -> projectConfig.getAllProjectDomains() }
+        .map { domain -> domain.withLocalVocusSuffix() }
         .plus(vocusHosts)
         .toSet()
     val existing = InitHosts.hostsManager.getHosts()

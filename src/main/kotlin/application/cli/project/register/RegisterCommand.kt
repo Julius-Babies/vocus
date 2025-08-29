@@ -63,7 +63,6 @@ class RegisterCommand : SuspendingCliktCommand("register") {
             applicationConfig.projects = (applicationConfig.projects - existingProject).filterNotNull()
             applicationConfig.projects += ProjectConfig(
                 name = config.name.lowercase(),
-                additionalSubdomains = config.additionalSubdomains,
                 infrastructure = ProjectConfig.Infrastructure(
                     databases = ProjectConfig.Infrastructure.Databases(
                         postgres16 = config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Postgres && it.version == "16" }?.let { databaseConfig ->
@@ -72,7 +71,27 @@ class RegisterCommand : SuspendingCliktCommand("register") {
                             )
                         }
                     )
-                )
+                ),
+                modules = config.modules.mapValues { (_, module) ->
+                    ProjectConfig.Module(
+                        dockerConfig = module.image?.let { image ->
+                            ProjectConfig.Module.DockerConfig(
+                                image = image,
+                                exposedPorts = module.exposedPorts
+                            )
+                        },
+                        routes = module.routes.map { route ->
+                            ProjectConfig.Module.Route(
+                                subdomain = route.domain,
+                                pathPrefixes = route.pathPrefixes.toSet().ifEmpty { setOf("/") },
+                                ports = ProjectConfig.Module.Route.Ports(
+                                    docker = route.ports?.docker,
+                                    host = route.ports?.host
+                                )
+                            )
+                        }
+                    )
+                }
             )
 
             applicationConfig

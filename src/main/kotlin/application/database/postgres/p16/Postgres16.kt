@@ -1,6 +1,5 @@
 package dev.babies.application.database.postgres.p16
 
-import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.model.Bind
 import com.github.dockerjava.api.model.ExposedPort
 import com.github.dockerjava.api.model.HostConfig
@@ -11,19 +10,17 @@ import dev.babies.utils.docker.isContainerRunning
 import dev.babies.utils.docker.prepareImage
 import dev.babies.utils.docker.runCommand
 import dev.babies.utils.waitUntil
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
 import org.postgresql.util.PSQLException
 import java.sql.Connection
 import java.sql.DriverManager
 
 class Postgres16(
-    private val dockerClient: DockerClient,
     private val dockerNetworkName: String
 ): AbstractPostgresDatabase(
-    containerName = "postgres16"
-) {
-    private val image = "postgres:16"
+    containerName = "postgres16",
+    image = "postgres:16"
+), KoinComponent {
 
     override suspend fun createIfMissing() {
         val state = getState()
@@ -120,20 +117,6 @@ class Postgres16(
         if (getState() != State.Created) throw IllegalStateException()
         if (!dockerClient.isContainerRunning(containerName)) return
         dockerClient.stopContainerCmd(containerName).exec()
-    }
-
-    suspend fun getState(): State {
-        withContext(Dispatchers.IO) {
-            val databaseContainer = dockerClient
-                .listContainersCmd()
-                .withShowAll(true)
-                .exec()
-                .firstOrNull {containerName in it.names.map { name -> name.dropWhile { c -> c == '/' } } } ?: return@withContext State.Missing
-            if (databaseContainer.image != image) return@withContext State.Invalid
-            if (databaseContainer.labels["com.docker.compose.project"] != "vocus") return@withContext State.Invalid
-            return@withContext null
-        }?.let { return it }
-        return State.Created
     }
 
     private suspend fun getConnection(): Connection {

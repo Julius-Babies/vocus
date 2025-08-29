@@ -1,0 +1,14 @@
+http:
+  routers:
+    NAME-external:
+      rule: Host(`HOST`) && (PATHPREFIX)
+      service: NAME-external
+      entryPoints:
+        - "websecure"
+      tls: true
+  services:
+    NAME-external:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: http://DESTINATION_HOST:PORT

@@ -9,8 +9,8 @@ import java.io.File
 @Serializable
 data class VocusfileManifest(
     @SerialName("name") val name: String,
-    @SerialName("additional_subdomains") val additionalSubdomains: List<String> = emptyList(),
-    @SerialName("infrastructure") val infrastructure: Infrastructure?
+    @SerialName("infrastructure") val infrastructure: Infrastructure?,
+    @SerialName("modules") val modules: Map<String, Module> = emptyMap(),
 ) {
     companion object Companion {
         fun readFromFile(file: File): VocusfileManifest {
@@ -32,6 +32,32 @@ data class VocusfileManifest(
             @Serializable
             enum class Type {
                 @SerialName("postgres") Postgres
+            }
+        }
+    }
+
+    @Serializable
+    data class Module(
+        @SerialName("image") val image: String? = null,
+        @SerialName("routes") val routes: List<Route> = emptyList(),
+        @SerialName("exposed_ports") val exposedPorts: List<Int> = emptyList(),
+    ) {
+        @Serializable
+        data class Route(
+            @SerialName("subdomain") val domain: String? = null,
+            @SerialName("path_prefixes") val pathPrefixes: Set<String> = setOf("/"),
+            @SerialName("ports") val ports: Ports? = null
+        )
+
+        @Serializable
+        data class Ports(
+            @SerialName("docker") val docker: Int? = null,
+            @SerialName("local") val host: Int? = null,
+        ) {
+            init {
+                require(host != null || docker != null) {
+                    "At least one port must be set, either local or docker."
+                }
             }
         }
     }

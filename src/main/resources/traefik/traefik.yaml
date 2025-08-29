@@ -1,0 +1,23 @@
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+api:
+  dashboard: true
+  insecure: true
+  disableDashboardAd: true
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+  docker:
+    watch: true
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: vocus
+
+log:
+  level: DEBUG

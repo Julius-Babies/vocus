@@ -7,7 +7,6 @@ import org.koin.dsl.module
 
 val postgres16Module = module {
     single { Postgres16(
-        dockerClient = get(),
         dockerNetworkName = get<DockerNetwork>(named(VOCUS_DOCKER_NETWORK_DI_KEY)).networkName
     ) }
 }
