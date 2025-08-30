@@ -53,11 +53,14 @@ class SslManager {
     /**
      * Loads an X509 certificate from a PEM file
      */
-    private fun loadCertificate(pemFile: File): X509Certificate = FileInputStream(pemFile).use { fis ->
-        PEMParser(InputStreamReader(fis)).use { parser ->
-            when (val obj = parser.readObject()) {
-                is X509CertificateHolder -> JcaX509CertificateConverter().setProvider("BC").getCertificate(obj)
-                else -> throw IllegalStateException("Unsupported cert PEM object: ${obj?.javaClass}")
+    private fun loadCertificate(pemFile: File): X509Certificate? {
+        if (!pemFile.exists()) return null
+        return FileInputStream(pemFile).use { fis ->
+            PEMParser(InputStreamReader(fis)).use { parser ->
+                when (val obj = parser.readObject()) {
+                    is X509CertificateHolder -> JcaX509CertificateConverter().setProvider("BC").getCertificate(obj)
+                    else -> throw IllegalStateException("Unsupported cert PEM object: ${obj?.javaClass}")
+                }
             }
         }
     }
@@ -125,7 +128,7 @@ class SslManager {
         }
 
         val privateKey = loadPrivateKey(keyFile)
-        val certificate = loadCertificate(certFile)
+        val certificate = loadCertificate(certFile)!!
         return certificate to privateKey
     }
 
@@ -148,7 +151,7 @@ class SslManager {
         if (certFile.exists() && keyFile.exists()) {
             try {
                 val cert = loadCertificate(certFile)
-                val san = cert.subjectAlternativeNames?.mapNotNull { it[1]?.toString() }?.toSet() ?: emptySet()
+                val san = cert!!.subjectAlternativeNames?.mapNotNull { it[1]?.toString() }?.toSet() ?: emptySet()
                 if (allDomains.all { it in san }) needsGeneration = false
             } catch (_: Exception) { needsGeneration = true }
         }

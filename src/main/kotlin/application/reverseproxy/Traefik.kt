@@ -17,6 +17,7 @@ import kotlinx.serialization.encodeToString
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import java.io.File
 
 class TraefikService : AbstractDockerService(
     containerName = "traefik",
@@ -29,8 +30,12 @@ class TraefikService : AbstractDockerService(
         .resolve("traefik")
         .apply { mkdirs() }
 
-    private val traefikDynamicConfig = traefikDirectory
+    val traefikDynamicConfig = traefikDirectory
         .resolve("dynamic")
+        .apply { mkdirs() }
+
+    val traefikModulesDirectory = traefikDynamicConfig
+        .resolve("modules")
         .apply { mkdirs() }
 
     val traefikStaticConfig = traefikDirectory.resolve("traefik.yaml")
@@ -135,16 +140,17 @@ class TraefikService : AbstractDockerService(
 
     fun addRouter(
         name: String,
+        file: File,
         host: String,
         pathPrefixes: Set<String> = setOf("/"),
         routerDestination: RouterDestination
     ) {
-        val file = traefikDynamicConfig.resolve("$name.yaml")
         val content = when (routerDestination) {
             is RouterDestination.HostPort -> {
                 {}::class.java.classLoader.getResourceAsStream("traefik/host-port-service.yaml")
                     ?.bufferedReader(Charsets.UTF_8)
                     ?.readText()!!
+                    .replace("DESTINATION_HOST", "host.docker.internal")
                     .replace("NAME", name)
                     .replace("HOST", host)
                     .replace("PATHPREFIX", pathPrefixes.joinToString(" || ") { "PathPrefix(`$it`)" })

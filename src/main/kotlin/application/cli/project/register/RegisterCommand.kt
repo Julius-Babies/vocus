@@ -76,7 +76,9 @@ class RegisterCommand : SuspendingCliktCommand("register") {
                     ProjectConfig.Module(
                         dockerConfig = module.image?.let { image ->
                             ProjectConfig.Module.DockerConfig(
-                                image = image,
+                                image = image.let { image ->
+                                    if (image.contains(":")) image else "$image:latest"
+                                },
                                 exposedPorts = module.exposedPorts
                             )
                         },

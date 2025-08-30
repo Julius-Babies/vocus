@@ -5,6 +5,8 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.types.enum
 import dev.babies.application.cli.project.item.module.ModuleItemContext
 import dev.babies.application.config.updateConfig
+import dev.babies.application.init.initModules
+import dev.babies.application.init.initTraefik
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.koin.core.component.KoinComponent
@@ -40,5 +42,8 @@ class SetStateCommand(
 
             config
         }
+
+        initTraefik()
+        initModules()
     }
 }

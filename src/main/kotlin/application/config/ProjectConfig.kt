@@ -2,6 +2,7 @@ package dev.babies.application.config
 
 import dev.babies.application.cli.project.item.module.item.SetStateCommand
 import dev.babies.utils.domain.nameToDomain
+import dev.babies.utils.domain.withLocalVocusSuffix
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -12,7 +13,7 @@ data class ProjectConfig(
     @SerialName("modules") var modules: Map<String, Module> = mapOf()
 ) {
 
-    val projectDomain = "${name.nameToDomain()}.local.vocus.dev"
+    val projectDomain = name.nameToDomain().withLocalVocusSuffix()
 
     fun getAllProjectDomains(): Set<String> {
         val domains = mutableSetOf<String>()
@@ -46,9 +47,7 @@ data class ProjectConfig(
         @SerialName("docker_config") val dockerConfig: DockerConfig?,
         @SerialName("routes") val routes: List<Route> = emptyList(),
         @SerialName("current_state") val currentState: SetStateCommand.State = SetStateCommand.State.Off
-
     ) {
-
         @Serializable
         data class DockerConfig(
             @SerialName("image") val image: String,

@@ -2,6 +2,7 @@ package dev.babies.utils.docker
 
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.command.PullImageResultCallback
+import com.github.dockerjava.api.model.PullResponseItem
 import org.slf4j.Logger
 import kotlin.collections.contains
 
@@ -25,7 +26,14 @@ fun DockerClient.prepareImage(image: String, logger: Logger? = null) {
             cmd = cmd.withAuthConfig(authConfig)
             logger.infoWithFallback("Using credentials for registry: ${authConfig.registryAddress}")
         }
-        cmd.exec(PullImageResultCallback()).awaitCompletion()
+        cmd.exec(
+            object : PullImageResultCallback() {
+                override fun onNext(item: PullResponseItem) {
+                    super.onNext(item)
+                    logger.infoWithFallback(item.toString())
+                }
+            }
+        ).awaitCompletion()
     } catch (t: Throwable) {
         if (hasLocal) {
             logger.warnWithFallback("Could not pull image '$image' (likely offline). Using locally available image.")

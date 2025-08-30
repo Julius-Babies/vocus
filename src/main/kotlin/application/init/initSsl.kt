@@ -12,7 +12,7 @@ private object InitSsl: KoinComponent {
 fun initSsl() {
     val subdomains = getConfig().projects.associate { it.projectDomain to it.getAllProjectDomains() }
     subdomains.forEach { (projectName, additionalSubdomains) ->
-        InitSsl.sslManager.createOrUpdateCertificateForDomains(projectName + ".local.vocus.dev", additionalSubdomains.map { it.lowercase() + ".${projectName.lowercase()}.local.vocus.dev" }.toSet())
+        InitSsl.sslManager.createOrUpdateCertificateForDomains(projectName, additionalSubdomains.map { "$it.$projectName" }.toSet())
     }
     InitSsl.sslManager.createOrUpdateCertificateForDomains("infra.local.vocus.dev", vocusHosts)
 }

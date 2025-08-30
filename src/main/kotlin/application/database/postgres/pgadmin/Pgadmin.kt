@@ -82,6 +82,7 @@ class Pgadmin : AbstractDockerService(
         traefikService.addRouter(
             name = TRAEFIK_ROUTER_NAME,
             host = "pgadmin.infra.local.vocus.dev",
+            file = traefikService.traefikModulesDirectory.resolve("pgadmin.yaml"),
             routerDestination = RouterDestination.ContainerPort(containerName, 80)
         )
     }
