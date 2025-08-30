@@ -9,6 +9,7 @@ import dev.babies.application.init.initCompletion
 import dev.babies.application.init.needsInstall
 import dev.babies.utils.gray
 import dev.babies.utils.green
+import dev.babies.utils.yellow
 import java.io.File
 
 class Main : SuspendingCliktCommand("vocus") {
@@ -20,6 +21,8 @@ class Main : SuspendingCliktCommand("vocus") {
             return
         }
         initCompletion(this)
+
+        if (currentContext.invokedSubcommand != null) return
 
         if (helpFlag) {
             println(getFormattedHelp())
@@ -35,6 +38,9 @@ class Main : SuspendingCliktCommand("vocus") {
                 "with ${gray("vocus -h")}!")
         println()
         println("By the way, every time you run a vocus command, the tab-completion is updated automatically.")
+        println()
+        println("See ${yellow("https://github.com/Julius-Babies/vocus")} for more information.")
+        println("Have a nice day!")
     }
 
 

@@ -15,6 +15,7 @@ import dev.babies.utils.green
 import dev.babies.utils.red
 import dev.babies.utils.yellow
 import kotlinx.serialization.SerializationException
+import java.io.File
 import kotlin.io.path.Path
 
 private val validConfigFileNames = setOf("vocusfile", "Vocusfile", "vocusfile.yaml", "Vocusfile.yaml", "vocusfile.yml", "Vocusfile.yml")
@@ -23,16 +24,16 @@ class RegisterCommand : SuspendingCliktCommand("register") {
     val vocusfilePath by option(
         "--vocusfile",
         help = "Path to the vocusfile. The default is the vocusfile in the current directory. If specified, its parent will be treated as the project directory."
-    ).path(mustExist = true, canBeDir = true).defaultLazy { Path(".") }
+    ).path(mustExist = true, canBeDir = false).defaultLazy { Path(".") }
 
     override suspend fun run() {
         val currentDirectory = vocusfilePath.toFile().let {
             if (it.isFile) it.parentFile else it
         }
-        val vocusProjectFile = validConfigFileNames.firstNotNullOfOrNull {
+        val vocusProjectFile = if (vocusfilePath != File(".")) validConfigFileNames.firstNotNullOfOrNull {
             val configFile = currentDirectory.resolve(it)
             if (configFile.exists()) configFile else null
-        }
+        } else vocusfilePath.toFile()
 
         if (vocusProjectFile == null) {
             val validFileNames = validConfigFileNames.sorted().joinToString("\n") { "- ${aqua(it)}" }
