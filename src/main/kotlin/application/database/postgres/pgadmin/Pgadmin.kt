@@ -30,6 +30,7 @@ class Pgadmin : AbstractDockerService(
 
     private val traefikService by inject<TraefikService>()
     private val dockerNetwork by inject<DockerNetwork>(named(VOCUS_DOCKER_NETWORK_DI_KEY))
+    private val traefikConfig = traefikService.traefikDynamicConfig.resolve("pgadmin.yaml")
 
     val pgAdminDirectory = applicationDirectory
         .resolve("pgadmin")
@@ -88,14 +89,14 @@ class Pgadmin : AbstractDockerService(
                 .addSubdomain("infra")
                 .addSubdomain("pgadmin")
                 .toString(),
-            file = traefikService.traefikModulesDirectory.resolve("pgadmin.yaml"),
+            file = traefikConfig,
             routerDestination = RouterDestination.ContainerPort(containerName, 80)
         )
     }
 
     override suspend fun stop() {
         if (getState() != State.Created) throw IllegalStateException()
-        traefikService.removeRouter(TRAEFIK_ROUTER_NAME)
+        traefikConfig.delete()
         if (!dockerClient.isContainerRunning(containerName)) return
         dockerClient.stopContainerCmd(containerName).exec()
     }

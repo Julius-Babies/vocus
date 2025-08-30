@@ -6,6 +6,7 @@ import com.github.dockerjava.api.model.HostConfig
 import com.github.dockerjava.api.model.Ports
 import dev.babies.application.database.postgres.AbstractPostgresDatabase
 import dev.babies.application.docker.COMPOSE_PROJECT_PREFIX
+import dev.babies.isDevelopment
 import dev.babies.utils.docker.doesContainerExist
 import dev.babies.utils.docker.isContainerRunning
 import dev.babies.utils.docker.prepareImage
@@ -19,7 +20,7 @@ import java.sql.DriverManager
 class Postgres16(
     private val dockerNetworkName: String
 ): AbstractPostgresDatabase(
-    containerName = "postgres16",
+    containerName = "postgres16" + if (isDevelopment) "_dev" else "",
     image = "postgres:16"
 ), KoinComponent {
 
@@ -43,7 +44,7 @@ class Postgres16(
 
         val exposedPort = ExposedPort.tcp(5432)
         val portBindings = Ports()
-        portBindings.bind(exposedPort, Ports.Binding.bindPort(5432))
+        portBindings.bind(exposedPort, Ports.Binding.bindPort(if (isDevelopment) 15432 else 5432))
 
         val bind = Bind.parse("${dataDirectory.absolutePath}:/var/lib/postgresql/data")
 

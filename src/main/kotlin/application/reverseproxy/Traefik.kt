@@ -11,6 +11,7 @@ import dev.babies.application.docker.network.DockerNetwork
 import dev.babies.application.docker.network.VOCUS_DOCKER_NETWORK_DI_KEY
 import dev.babies.application.ssl.SslManager
 import dev.babies.applicationDirectory
+import dev.babies.isDevelopment
 import dev.babies.utils.docker.doesContainerExist
 import dev.babies.utils.docker.isContainerRunning
 import dev.babies.utils.docker.prepareImage
@@ -21,7 +22,7 @@ import org.koin.core.qualifier.named
 import java.io.File
 
 class TraefikService : AbstractDockerService(
-    containerName = "traefik",
+    containerName = "traefik" + if (isDevelopment) "_dev" else "",
     image = "traefik:v3.5.1"
 ), KoinComponent {
     private val sslManager by inject<SslManager>()
@@ -33,10 +34,6 @@ class TraefikService : AbstractDockerService(
 
     val traefikDynamicConfig = traefikDirectory
         .resolve("dynamic")
-        .apply { mkdirs() }
-
-    val traefikModulesDirectory = traefikDynamicConfig
-        .resolve("modules")
         .apply { mkdirs() }
 
     val traefikStaticConfig = traefikDirectory.resolve("traefik.yaml")
@@ -66,8 +63,8 @@ class TraefikService : AbstractDockerService(
         val exposedHttpsPort = ExposedPort.tcp(443)
 
         val portBindings = Ports()
-        portBindings.bind(exposedHttpPort, Ports.Binding.bindPort(80))
-        portBindings.bind(exposedHttpsPort, Ports.Binding.bindPort(443))
+        portBindings.bind(exposedHttpPort, Ports.Binding.bindPort(if (isDevelopment) 180 else 80))
+        portBindings.bind(exposedHttpsPort, Ports.Binding.bindPort(if (isDevelopment) 1443 else 443))
 
         val defaultConfigFile = {}::class.java.classLoader.getResourceAsStream("traefik/traefik.yaml")
             ?.bufferedReader(Charsets.UTF_8)
@@ -96,9 +93,11 @@ class TraefikService : AbstractDockerService(
     }
 
     private fun writeDashboardConfig() {
-        val dashboardConfigContent = {}::class.java.classLoader.getResourceAsStream("traefik/dashboard.yaml")
+        var dashboardConfigContent = {}::class.java.classLoader.getResourceAsStream("traefik/dashboard.yaml")
             ?.bufferedReader(Charsets.UTF_8)
             ?.readText()
+
+        if (isDevelopment) dashboardConfigContent = dashboardConfigContent?.replace("local.vocus.dev", "local.vocusdev.internal")
 
         if (dashboardConfigContent != null) {
             val dashboardConfigFile = traefikDynamicConfig.resolve("dashboard.yml")
@@ -127,10 +126,10 @@ class TraefikService : AbstractDockerService(
     }
 
     override suspend fun start() {
+        writeConfigs()
         if (dockerClient.isContainerRunning(containerName)) return
         if (getState() != State.Created) throw IllegalStateException()
         dockerClient.startContainerCmd(containerName).exec()
-        writeConfigs()
     }
 
     override suspend fun stop() {
@@ -169,10 +168,6 @@ class TraefikService : AbstractDockerService(
             }
         }
         file.writeText(content)
-    }
-
-    fun removeRouter(name: String) {
-        traefikDynamicConfig.resolve("$name.yaml").delete()
     }
 }
 

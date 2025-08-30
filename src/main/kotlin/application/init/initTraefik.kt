@@ -9,6 +9,7 @@ private object InitTraefik : KoinComponent {
 }
 
 suspend fun initTraefik() {
+    initSsl()
     InitTraefik.traefikService.createIfMissing()
     InitTraefik.traefikService.start()
 }

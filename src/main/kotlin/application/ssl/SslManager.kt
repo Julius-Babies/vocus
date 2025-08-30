@@ -1,6 +1,7 @@
 package dev.babies.application.ssl
 
 import dev.babies.applicationDirectory
+import dev.babies.isDevelopment
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x509.*
@@ -102,7 +103,8 @@ class SslManager {
             val startDate = Date()
             val endDate = Date(startDate.time + 10L * 365 * 24 * 60 * 60 * 1000)
 
-            val distinguishedName = "CN=VocusRoot, O=VocusDev, C=DE"
+            val cn = if (isDevelopment) "VocusRoot Dev" else "VocusRoot"
+            val distinguishedName = "CN=$cn, O=VocusDev, C=DE"
             val x500Name = X500Name(distinguishedName)
             val serialNumber = BigInteger.valueOf(System.currentTimeMillis())
 

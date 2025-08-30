@@ -1,6 +1,7 @@
 package dev.babies.application.docker
 
 import com.github.dockerjava.api.DockerClient
+import dev.babies.utils.docker.isContainerRunning
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -33,5 +34,9 @@ abstract class AbstractDockerService(
             return@withContext null
         }?.let { return it }
         return State.Created
+    }
+
+    suspend fun isRunning(): Boolean {
+        return getState() == State.Created && dockerClient.isContainerRunning(containerName)
     }
 }

@@ -10,6 +10,7 @@ import dev.babies.application.config.updateConfig
 import dev.babies.application.init.initHosts
 import dev.babies.application.init.initPostgres16
 import dev.babies.application.init.initSsl
+import dev.babies.application.init.updateDockerNetwork
 import dev.babies.utils.aqua
 import dev.babies.utils.green
 import dev.babies.utils.red
@@ -50,6 +51,8 @@ class RegisterCommand : SuspendingCliktCommand("register") {
             println(red("Error parsing vocusfile: ${e.message}"))
             return
         }
+
+        updateDockerNetwork()
 
         println("Setting up project " + green(config.name))
 

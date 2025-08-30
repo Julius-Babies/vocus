@@ -4,6 +4,7 @@ import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.model.ExposedPort
 import com.github.dockerjava.api.model.HostConfig
 import dev.babies.application.cli.project.item.module.item.SetStateCommand
+import dev.babies.application.config.ProjectConfig
 import dev.babies.application.config.getConfig
 import dev.babies.application.docker.COMPOSE_PROJECT_PREFIX
 import dev.babies.application.docker.network.DockerNetwork
@@ -17,6 +18,7 @@ import dev.babies.utils.docker.prepareImage
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import java.io.File
 
 private object InitModules : KoinComponent {
     val dockerClient by inject<DockerClient>()
@@ -33,8 +35,7 @@ fun initModules() {
         moduleRouterDirectory.mkdirs()
         project.modules.forEach { (moduleName, module) ->
             val dockerContainerName = "${project.name}_$moduleName"
-            val projectRouterDirectory = moduleRouterDirectory.resolve(project.name).apply { mkdirs() }
-            if (module.currentState != SetStateCommand.State.Off) {
+            if (module.currentState != SetStateCommand.State.Docker) {
                 // Delete Docker container if it exists
                 val container = InitModules.dockerClient.getContainerByName(dockerContainerName)
                 if (container != null) {
@@ -81,17 +82,29 @@ fun initModules() {
 
                     InitModules.dockerClient.startContainerCmd(dockerContainerName).exec()
                 }
-
             }
-            val moduleDirectory = projectRouterDirectory.resolve(moduleName).apply { mkdirs() }
 
-            module.routes.forEach { route ->
-                val name = project.projectDomain.toString() + "-$moduleName-${route.subdomain}-${route.pathPrefixes.hashCode()}"
-                val routerFile = moduleDirectory.resolve("$name.yaml")
+            fun getTraefikRouterNameFromRoute(route: ProjectConfig.Module.Route): String {
+                return project.projectDomain.toString() + "-$moduleName-${route.subdomain}-${route.pathPrefixes.hashCode()}"
+            }
+            fun getTraefikRouterFileFromRoute(route: ProjectConfig.Module.Route): File {
+                val name = getTraefikRouterNameFromRoute(route)
+                val routerFile = InitModules.traefikService.traefikDynamicConfig.resolve("$name-module.yaml")
+                return routerFile
+            }
 
+            if (module.currentState == SetStateCommand.State.Off) {
+                module.routes.forEach { route ->
+                    val routerFile = getTraefikRouterFileFromRoute(route)
+                    if (routerFile.exists()) routerFile.delete()
+                }
+                return@forEach
+            }
+
+            module.routes.forEach forEachRoute@{ route ->
                 InitModules.traefikService.addRouter(
-                    name = name,
-                    file = routerFile,
+                    name = getTraefikRouterNameFromRoute(route),
+                    file = getTraefikRouterFileFromRoute(route),
                     host = if (route.subdomain.isNullOrBlank()) {
                         project.projectDomain.buildAsSubdomain(skipIfSuffixAlreadyPresent = true, suffix = vocusDomain)
                     } else {
@@ -101,7 +114,7 @@ fun initModules() {
                     routerDestination = when (module.currentState) {
                         SetStateCommand.State.Docker -> RouterDestination.ContainerPort(dockerContainerName, route.ports.docker!!)
                         SetStateCommand.State.Local -> RouterDestination.HostPort(route.ports.host!!)
-                        else -> throw IllegalStateException()
+                        SetStateCommand.State.Off -> return@forEachRoute
                     }
                 )
             }

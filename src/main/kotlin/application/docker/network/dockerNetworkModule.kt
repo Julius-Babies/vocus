@@ -1,5 +1,6 @@
 package dev.babies.application.docker.network
 
+import dev.babies.isDevelopment
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -9,7 +10,7 @@ val dockerNetworkModule = module {
     single(named(VOCUS_DOCKER_NETWORK_DI_KEY)) {
         DockerNetwork(
             dockerClient = get(),
-            networkName = "vocus"
+            networkName = "vocus" + if (isDevelopment) "_dev" else ""
         )
     }
 }
