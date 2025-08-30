@@ -17,7 +17,7 @@ class ProjectCommand(
 
     override suspend fun run() {
         if (currentContext.invokedSubcommand != null) return
-        println("LocalEnv projects")
+        println("Vocus projects")
 
         val projects = getConfig().projects.sortedBy { it.name }
         projects.forEach { project ->

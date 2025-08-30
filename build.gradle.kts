@@ -24,6 +24,8 @@ dependencies {
 
     implementation(libs.kotlinx.serialization.json)
 
+    implementation(libs.kotlincrypto.hash.sha1)
+
     implementation(libs.postgres)
 
     testImplementation(kotlin("test"))
