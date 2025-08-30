@@ -42,7 +42,7 @@ fun initCompletion(
     baseCommand: BaseCliktCommand<*>
 ) {
     val currentPath = JarLocation().jarLocation
-    if (!needsInstall()) return
+    if (needsInstall()) return
 
     var hasChangedShellConfig = false
     var isInstalled = true
