@@ -47,9 +47,8 @@ class DockerNetwork(
         return withContext(Dispatchers.IO) {
             val dockerNetwork = dockerClient
                 .listNetworksCmd()
-                .withNameFilter(networkName)
                 .exec()
-                .firstOrNull() ?: return@withContext State.Missing
+                .first { it.name == networkName } ?: return@withContext State.Missing
             if (!dockerNetwork.isAttachable) return@withContext State.Invalid
             if (dockerNetwork.driver != "bridge") return@withContext State.Invalid
             if (dockerNetwork.ipam.config.none { it.subnet == networkAddress }) return@withContext State.Invalid
