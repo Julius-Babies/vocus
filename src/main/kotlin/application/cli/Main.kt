@@ -8,6 +8,7 @@ import dev.babies.application.cli.project.ProjectCommand
 import dev.babies.application.init.initCompletion
 import dev.babies.application.init.install
 import dev.babies.application.init.needsInstall
+import dev.babies.isDevelopment
 import dev.babies.utils.gray
 import dev.babies.utils.green
 import dev.babies.utils.yellow
@@ -17,6 +18,9 @@ class Main : SuspendingCliktCommand("vocus") {
     override val invokeWithoutSubcommand: Boolean = true
     val helpFlag by option("-h", "--help", help = "Show this help message and exit").flag()
     override suspend fun run() {
+
+        if (isDevelopment) println(yellow("⚠\uFE0F Running in development mode."))
+
         if (needsInstall()) {
             install()
             initCompletion(this, shellChanged = true)

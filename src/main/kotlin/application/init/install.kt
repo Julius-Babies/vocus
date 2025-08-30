@@ -1,6 +1,7 @@
 package dev.babies.application.init
 
 import dev.babies.applicationDirectory
+import dev.babies.isDevelopment
 import dev.babies.utils.JarLocation
 import dev.babies.utils.dropUserHome
 import dev.babies.utils.gray
@@ -55,7 +56,7 @@ fun install() {
         println("Installing into " + gray(applicationDirectory.absolutePath))
         println("Copying jar file from ${gray(currentPath.dropUserHome())} to ${gray(appFile.absolutePath.dropUserHome())}")
         val currentFile = File(currentPath)
-        currentFile.copyTo(appFile, overwrite = true)
+        if (!isDevelopment) currentFile.copyTo(appFile, overwrite = true)
 
         when (currentShell) {
             "/bin/zsh" -> {
@@ -64,7 +65,7 @@ fun install() {
                 if (alias !in content) {
                     println("Appending alias to your zshrc file:")
                     println(alias.prependIndent("  "))
-                    zshrcFile.appendText("\n" + alias)
+                    if (!isDevelopment) zshrcFile.appendText("\n" + alias)
                 }
             }
             "/bin/bash" -> {
@@ -73,9 +74,12 @@ fun install() {
                 if (alias !in lines) {
                     println("Appending alias to your bashrc file:")
                     println(alias.prependIndent("  "))
-                    bashrcFile.appendText("\n" + alias)
+                    if (!isDevelopment) bashrcFile.appendText("\n" + alias)
                 }
             }
         }
+
+        println()
+        println(green("\uD83C\uDF89 Installation of vocus complete."))
     }
 }

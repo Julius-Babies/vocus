@@ -3,6 +3,7 @@ package dev.babies.application.cli.completion
 import com.github.ajalt.clikt.completion.CompletionGenerator
 import com.github.ajalt.clikt.core.BaseCliktCommand
 import dev.babies.applicationDirectory
+import dev.babies.isDevelopment
 import org.kotlincrypto.hash.sha1.SHA1
 import java.io.File
 import dev.babies.application.cli.completion.getConfig as getAutocompleteConfig
@@ -38,7 +39,7 @@ fun updateAutocomplete(
             }
             if (!hasAutocomplete) {
                 println("Adding autocomplete to your zshrc file")
-                zshrcFile.appendText("\nsource ${applicationDirectory.resolve("autocomplete.zsh").absolutePath}")
+                if (!isDevelopment) zshrcFile.appendText("\nsource ${applicationDirectory.resolve("autocomplete.zsh").absolutePath}")
                 hasChangedShellConfig = true
             }
         }
