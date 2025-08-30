@@ -14,7 +14,10 @@ import kotlinx.coroutines.runBlocking
 import org.koin.core.context.startKoin
 import java.io.File
 
-val applicationDirectory = File(".").resolve(".vocusdev").apply { mkdirs() }
+val isDevelopment = File(".").resolve(".development").exists()
+val applicationDirectory =
+    if (isDevelopment) File(".").resolve(".vocusdev").apply { mkdirs() }
+    else File(System.getProperty("user.home")).resolve(".vocus").apply { mkdirs() }
 
 fun main(args: Array<String>) {
     startKoin {
