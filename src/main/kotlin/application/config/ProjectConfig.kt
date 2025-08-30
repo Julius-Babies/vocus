@@ -1,10 +1,11 @@
 package dev.babies.application.config
 
 import dev.babies.application.cli.project.item.module.item.SetStateCommand
-import dev.babies.utils.domain.nameToDomain
-import dev.babies.utils.domain.withLocalVocusSuffix
+import dev.babies.application.os.host.DomainBuilder
+import dev.babies.application.os.host.vocusDomain
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
 data class ProjectConfig(
@@ -13,15 +14,15 @@ data class ProjectConfig(
     @SerialName("modules") var modules: Map<String, Module> = mapOf()
 ) {
 
-    val projectDomain = name.nameToDomain().withLocalVocusSuffix()
+    @Transient val projectDomain = DomainBuilder(vocusDomain).addSubdomain(DomainBuilder.nameToDomain(name))
 
     fun getAllProjectDomains(): Set<String> {
         val domains = mutableSetOf<String>()
-        domains.add(projectDomain)
+        domains.add(projectDomain.toString())
         modules.values.forEach { module ->
             module.routes.forEach forEachRoute@{ route ->
                 if (route.subdomain.isNullOrBlank()) return@forEachRoute
-                domains.add(route.subdomain.nameToDomain() + "." + projectDomain)
+                domains.add(DomainBuilder(projectDomain).addSubdomain(route.subdomain).toString())
             }
         }
         return domains

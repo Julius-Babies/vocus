@@ -3,7 +3,10 @@ package dev.babies.application.docker
 import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.zerodep.ZerodepDockerHttpClient
+import dev.babies.isDevelopment
 import org.koin.dsl.module
+
+val COMPOSE_PROJECT_PREFIX = if (isDevelopment) "vocus_dev" else "vocus"
 
 val dockerModule = module {
     single {

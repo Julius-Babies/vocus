@@ -3,52 +3,24 @@
 package dev.babies.application.os.host
 
 import dev.babies.application.os.SudoManager
+import dev.babies.isDevelopment
 import dev.babies.utils.gray
 import dev.babies.utils.red
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
-import kotlin.also
-import kotlin.collections.any
-import kotlin.collections.distinct
-import kotlin.collections.drop
-import kotlin.collections.dropLast
-import kotlin.collections.dropLastWhile
-import kotlin.collections.dropWhile
-import kotlin.collections.groupBy
-import kotlin.collections.joinToString
-import kotlin.collections.map
-import kotlin.collections.minus
-import kotlin.collections.none
-import kotlin.collections.orEmpty
-import kotlin.collections.plus
-import kotlin.collections.sorted
-import kotlin.collections.sortedBy
-import kotlin.collections.toList
-import kotlin.collections.toSet
-import kotlin.io.readLines
-import kotlin.io.readText
-import kotlin.io.writeText
-import kotlin.text.contains
-import kotlin.text.equals
-import kotlin.text.isBlank
-import kotlin.text.lowercase
-import kotlin.text.removeSuffix
-import kotlin.text.replace
-import kotlin.text.split
-import kotlin.text.substringAfterLast
-import kotlin.text.substringBefore
-import kotlin.text.trim
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+
+val vocusDomain = if (isDevelopment) "local.vocusdev.internal" else "local.vocus.dev"
 
 class HostsManager(): KoinComponent {
     private val sudoManager by inject<SudoManager>()
     private val hostsFile = File("/etc/hosts")
 
     companion object {
-        private const val BLOCK_START = """### VOCUS CONFIGURATION ###"""
-        private const val BLOCK_END = """### END VOCUS CONFIGURATION ###"""
+        private val BLOCK_START = if (isDevelopment) """### VOCUS DEV CONFIGURATION ###""" else """### VOCUS CONFIGURATION ###"""
+        private val BLOCK_END = if (isDevelopment) """### END VOCUS DEV CONFIGURATION ###""" else """### END VOCUS CONFIGURATION ###"""
     }
 
     private fun getHostsContent(): List<String>? {
@@ -66,16 +38,18 @@ class HostsManager(): KoinComponent {
         val content = getHostsContent().orEmpty().sorted()
 
         return hostNames.map { hostName ->
+            val domain = DomainBuilder(hostName).buildAsSubdomain(suffix = vocusDomain)
             HostStatus(
-                "$hostName.local.vocus.dev",
-                content.any { line -> line.contains("$hostName.local.vocus.dev") }
+                domain,
+                content.any { line -> line.contains(domain) }
             )
         }
     }
 
     fun addHost(hostNames: Set<String>) {
         val hostNames = hostNames
-            .map { it.lowercase().removeSuffix(".local.vocus.dev") }.toSet()
+            .map { DomainBuilder(it).apply { dropSuffix(vocusDomain) }.toString() }
+            .toSet()
         val content = getHostsContent()
         if (content == null) {
             val block = "$BLOCK_START\n$BLOCK_END\n"
@@ -89,9 +63,12 @@ class HostsManager(): KoinComponent {
         }
 
         val newContent = content
-            .plus(hostNames.map { "127.0.0.1 $it.local.vocus.dev" })
+            .plus(hostNames
+                .map { DomainBuilder(it).buildAsSubdomain(suffix = vocusDomain) }
+                .map { "127.0.0.1 $it" }
+            )
             .distinct()
-            .groupBy { it.split(" ").getOrNull(1)?.substringBefore(".local.vocus.dev")?.substringAfterLast(".") }
+            .groupBy { it.split(" ").getOrNull(1)?.substringBefore(".$vocusDomain")?.substringAfterLast(".") }
             .minus(null)
             .toList()
             .sortedBy { it.first }
@@ -116,12 +93,12 @@ class HostsManager(): KoinComponent {
     }
 
     fun removeHost(hostNames: Set<String>) {
-        val hostNames = hostNames.map { it.lowercase().removeSuffix(".local.vocus.dev") }.toSet()
+        val hostNames = hostNames.map { DomainBuilder(it).dropSuffix(vocusDomain).toString() }.toSet()
         val content = getHostsContent() ?: return
 
         val newContent = content
-            .filter { line -> hostNames.none { hostName -> line.contains("$hostName.local.vocus.dev") } }
-            .groupBy { it.split(" ").getOrNull(1)?.substringBefore(".local.vocus.dev")?.substringAfterLast(".") }
+            .filter { line -> hostNames.none { hostName -> line.contains("$hostName.$vocusDomain") } }
+            .groupBy { it.split(" ").getOrNull(1)?.substringBefore(".$vocusDomain")?.substringAfterLast(".") }
             .minus(null)
             .toList()
             .sortedBy { it.first }

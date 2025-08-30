@@ -5,6 +5,7 @@ import com.github.dockerjava.api.model.ExposedPort
 import com.github.dockerjava.api.model.HostConfig
 import com.github.dockerjava.api.model.Ports
 import dev.babies.application.database.postgres.AbstractPostgresDatabase
+import dev.babies.application.docker.COMPOSE_PROJECT_PREFIX
 import dev.babies.utils.docker.doesContainerExist
 import dev.babies.utils.docker.isContainerRunning
 import dev.babies.utils.docker.prepareImage
@@ -61,7 +62,7 @@ class Postgres16(
             )
             .withExposedPorts(exposedPort)
             .withLabels(
-                mapOf("com.docker.compose.project" to "vocus")
+                mapOf("com.docker.compose.project" to COMPOSE_PROJECT_PREFIX)
             )
             .exec()
 
@@ -85,6 +86,11 @@ class Postgres16(
 
     override suspend fun createDatabase(databaseName: String) {
         getConnection().use {
+            // Check if the database exists
+            val rs = it.createStatement().executeQuery("SELECT 1 FROM pg_database WHERE datname = '$databaseName'")
+            if (rs.next()) return
+            rs.close()
+
             val statement = it.createStatement()
             statement.execute("CREATE DATABASE $databaseName")
             statement.close()

@@ -3,6 +3,7 @@ clikt = "5.0.3"
 docker-java = "3.6.0"
 kaml = "0.92.0"
 koin = "4.1.0"
+kotest = "6.0.1"
 kotlin = "2.2.10"
 kotlin-crypto = "0.7.0"
 kotlinx-coroutines = "1.10.2"
@@ -21,6 +22,10 @@ kaml = { module = "com.charleskorn.kaml:kaml", version.ref = "kaml" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-logger-slf4j = { module = "io.insert-koin:koin-logger-slf4j", version.ref = "koin" }
 
+kotest-framework-engine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+
 kotlincrypto-hash-sha1 = { module = "org.kotlincrypto.hash:sha1", version.ref = "kotlin-crypto" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
@@ -30,6 +35,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 postgres = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 
 [plugins]
+kotest = { id = "io.kotest", version.ref = "kotest" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 application = { id = "application" }

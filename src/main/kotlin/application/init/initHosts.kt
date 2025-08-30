@@ -1,8 +1,9 @@
 package dev.babies.application.init
 
 import dev.babies.application.config.getConfig
+import dev.babies.application.os.host.DomainBuilder
 import dev.babies.application.os.host.HostsManager
-import dev.babies.utils.domain.withLocalVocusSuffix
+import dev.babies.application.os.host.vocusDomain
 import dev.babies.utils.gray
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -12,15 +13,15 @@ private object InitHosts: KoinComponent {
 }
 
 val vocusHosts = setOf(
-    "pgadmin.infra.local.vocus.dev",
-    "traefik.infra.local.vocus.dev",
-    "rabbitmq.infra.local.vocus.dev"
+    DomainBuilder(vocusDomain).addSubdomain("infra").addSubdomain("pgadmin").toString(),
+    DomainBuilder(vocusDomain).addSubdomain("infra").addSubdomain("traefik").toString(),
+    DomainBuilder(vocusDomain).addSubdomain("infra").addSubdomain("rabbitmq").toString(),
 )
 
 fun initHosts() {
     val hosts = getConfig().projects
         .flatMap { projectConfig -> projectConfig.getAllProjectDomains() }
-        .map { domain -> domain.withLocalVocusSuffix() }
+        .map { DomainBuilder(it).buildAsSubdomain(suffix = vocusDomain, skipIfSuffixAlreadyPresent = true) }
         .plus(vocusHosts)
         .toSet()
     val existing = InitHosts.hostsManager.getHosts()

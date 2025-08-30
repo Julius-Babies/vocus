@@ -6,6 +6,7 @@ import com.github.dockerjava.api.model.ExposedPort
 import com.github.dockerjava.api.model.HostConfig
 import com.github.dockerjava.api.model.Ports
 import dev.babies.application.docker.AbstractDockerService
+import dev.babies.application.docker.COMPOSE_PROJECT_PREFIX
 import dev.babies.application.docker.network.DockerNetwork
 import dev.babies.application.docker.network.VOCUS_DOCKER_NETWORK_DI_KEY
 import dev.babies.application.ssl.SslManager
@@ -89,7 +90,7 @@ class TraefikService : AbstractDockerService(
                     .withNetworkMode(dockerNetwork.networkName)
             )
             .withLabels(
-                mapOf("com.docker.compose.project" to "vocus")
+                mapOf("com.docker.compose.project" to COMPOSE_PROJECT_PREFIX)
             )
             .exec()
     }

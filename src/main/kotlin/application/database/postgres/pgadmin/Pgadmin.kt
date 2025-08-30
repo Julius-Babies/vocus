@@ -3,8 +3,11 @@ package dev.babies.application.database.postgres.pgadmin
 import com.github.dockerjava.api.model.Bind
 import com.github.dockerjava.api.model.HostConfig
 import dev.babies.application.docker.AbstractDockerService
+import dev.babies.application.docker.COMPOSE_PROJECT_PREFIX
 import dev.babies.application.docker.network.DockerNetwork
 import dev.babies.application.docker.network.VOCUS_DOCKER_NETWORK_DI_KEY
+import dev.babies.application.os.host.DomainBuilder
+import dev.babies.application.os.host.vocusDomain
 import dev.babies.application.reverseproxy.RouterDestination
 import dev.babies.application.reverseproxy.TraefikService
 import dev.babies.applicationDirectory
@@ -65,7 +68,7 @@ class Pgadmin : AbstractDockerService(
                     .withNetworkMode(dockerNetwork.networkName)
             )
             .withLabels(
-                mapOf("com.docker.compose.project" to "vocus")
+                mapOf("com.docker.compose.project" to COMPOSE_PROJECT_PREFIX)
             )
             .exec()
     }
@@ -81,7 +84,10 @@ class Pgadmin : AbstractDockerService(
 
         traefikService.addRouter(
             name = TRAEFIK_ROUTER_NAME,
-            host = "pgadmin.infra.local.vocus.dev",
+            host = DomainBuilder(vocusDomain)
+                .addSubdomain("infra")
+                .addSubdomain("pgadmin")
+                .toString(),
             file = traefikService.traefikModulesDirectory.resolve("pgadmin.yaml"),
             routerDestination = RouterDestination.ContainerPort(containerName, 80)
         )

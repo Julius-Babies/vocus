@@ -29,7 +29,7 @@ abstract class AbstractDockerService(
                 .exec()
                 .firstOrNull {containerName in it.names.map { name -> name.dropWhile { c -> c == '/' } } } ?: return@withContext State.Missing
             if (databaseContainer.image != image) return@withContext State.Invalid
-            if (databaseContainer.labels["com.docker.compose.project"] != "vocus") return@withContext State.Invalid
+            if (databaseContainer.labels["com.docker.compose.project"] != COMPOSE_PROJECT_PREFIX) return@withContext State.Invalid
             return@withContext null
         }?.let { return it }
         return State.Created

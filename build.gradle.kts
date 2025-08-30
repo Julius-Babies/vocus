@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.application)
     alias(libs.plugins.shadow)
+    alias(libs.plugins.kotest)
 }
 
 group = "dev.babies"
@@ -30,7 +31,9 @@ dependencies {
 
     implementation(libs.postgres)
 
-    testImplementation(kotlin("test"))
+    testImplementation(libs.kotest.framework.engine)
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.assertions.core)
 }
 
 tasks.test {
@@ -51,4 +54,8 @@ tasks {
             attributes["Main-Class"] = application.mainClass
         }
     }
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
