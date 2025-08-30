@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import dev.babies.application.cli.project.ProjectCommand
 import dev.babies.application.init.initCompletion
+import dev.babies.application.init.install
 import dev.babies.application.init.needsInstall
 import dev.babies.utils.gray
 import dev.babies.utils.green
@@ -17,7 +18,8 @@ class Main : SuspendingCliktCommand("vocus") {
     val helpFlag by option("-h", "--help", help = "Show this help message and exit").flag()
     override suspend fun run() {
         if (needsInstall()) {
-            initCompletion(this)
+            install()
+            initCompletion(this, shellChanged = true)
             return
         }
         initCompletion(this)
