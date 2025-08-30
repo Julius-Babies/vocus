@@ -10,7 +10,7 @@ import kotlin.system.exitProcess
 
 val appFile = applicationDirectory.resolve("app.jar")
 val alias = $$"""vocus() {
-  java -jar $${applicationDirectory.absolutePath.dropUserHome()} $@
+  java -jar $${applicationDirectory.absolutePath.dropUserHome()}/app.jar $@
 }
 """
 
