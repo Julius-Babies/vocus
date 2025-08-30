@@ -85,7 +85,6 @@ fun initModules() {
                         )
                         .withHostConfig(
                             HostConfig()
-                                .withAutoRemove(true)
                                 .withNetworkMode(InitModules.dockerNetwork.networkName)
                                 .withPortBindings(ports)
                         )
