@@ -93,11 +93,11 @@ class HostsManager(): KoinComponent {
     }
 
     fun removeHost(hostNames: Set<String>) {
-        val hostNames = hostNames.map { DomainBuilder(it).dropSuffix(vocusDomain).toString() }.toSet()
+        val hostNames = hostNames.map { DomainBuilder(it).apply { dropSuffix(vocusDomain) }.toString() }.toSet()
         val content = getHostsContent() ?: return
 
         val newContent = content
-            .filter { line -> hostNames.none { hostName -> line.contains("$hostName.$vocusDomain") } }
+            .filter { !hostNames.contains(it.split(" ").getOrNull(1)?.substringBefore(".$vocusDomain")) }
             .groupBy { it.split(" ").getOrNull(1)?.substringBefore(".$vocusDomain")?.substringAfterLast(".") }
             .minus(null)
             .toList()

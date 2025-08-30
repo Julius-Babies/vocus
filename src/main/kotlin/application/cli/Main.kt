@@ -14,14 +14,22 @@ import dev.babies.utils.green
 import dev.babies.utils.yellow
 import java.io.File
 
-class Main : SuspendingCliktCommand("vocus") {
+class Main : SuspendingCliktCommand(
+    name = "vocus"
+) {
     override val invokeWithoutSubcommand: Boolean = true
+
     val helpFlag by option("-h", "--help", help = "Show this help message and exit").flag()
+    val noInstall by option(
+        "-ni", "--no-install",
+        help = "Do not install vocus if it is not installed yet. This flag is not recommended."
+    ).flag()
+
     override suspend fun run() {
 
         if (isDevelopment) println(yellow("⚠\uFE0F Running in development mode."))
 
-        if (needsInstall()) {
+        if (needsInstall() && !noInstall) {
             install()
             initCompletion(this, shellChanged = true)
             return

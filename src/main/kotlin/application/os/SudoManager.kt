@@ -33,7 +33,7 @@ class SudoManager {
                 }
             }
         } else {
-            password = System.console().readPassword("Please enter your sudo password:" ).toString()
+            password = System.console().readPassword("Sudo Password: ").joinToString("")
         }
 
         return password!!
