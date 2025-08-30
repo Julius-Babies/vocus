@@ -3,6 +3,7 @@ package dev.babies.application.init
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.model.ExposedPort
 import com.github.dockerjava.api.model.HostConfig
+import com.github.dockerjava.api.model.Ports
 import dev.babies.application.cli.project.item.module.item.SetStateCommand
 import dev.babies.application.config.ProjectConfig
 import dev.babies.application.config.getConfig
@@ -14,6 +15,8 @@ import dev.babies.application.os.host.vocusDomain
 import dev.babies.application.reverseproxy.RouterDestination
 import dev.babies.application.reverseproxy.TraefikService
 import dev.babies.utils.docker.getContainerByName
+import dev.babies.utils.docker.getEnvironmentVariables
+import dev.babies.utils.docker.getExposedPorts
 import dev.babies.utils.docker.prepareImage
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -53,9 +56,12 @@ fun initModules() {
                 if (existingContainer == null) recreate = true
                 else {
                     if (existingContainer.image != module.dockerConfig.image) recreate = true
+                    if (!compareMaps(existingContainer.getExposedPorts().toSortedMap(), module.dockerConfig.exposedPorts.toSortedMap())) recreate = true
+                    if (!compareEnvironmentVariables(existingContainer.getEnvironmentVariables(), module.dockerConfig.env)) recreate = true
                 }
 
                 if (recreate) {
+                    println("Creating new Docker container for module $moduleName")
                     if (existingContainer != null) {
                         InitModules.dockerClient
                             .removeContainerCmd(existingContainer.id)
@@ -63,9 +69,14 @@ fun initModules() {
                             .exec()
                     }
 
-                    val exposedPorts = module.dockerConfig.exposedPorts.map { port ->
-                        ExposedPort.tcp(port)
+                    val exposedPorts = module.dockerConfig.exposedPorts.map { (_, containerPort) ->
+                        ExposedPort.tcp(containerPort)
                     }.toTypedArray()
+
+                    val ports = Ports()
+                    module.dockerConfig.exposedPorts.forEach { (hostPort, containerPort) ->
+                        ports.bind(ExposedPort.tcp(containerPort), Ports.Binding.bindPort(hostPort))
+                    }
 
                     InitModules.dockerClient.createContainerCmd(module.dockerConfig.image)
                         .withName(dockerContainerName)
@@ -76,7 +87,9 @@ fun initModules() {
                             HostConfig()
                                 .withAutoRemove(true)
                                 .withNetworkMode(InitModules.dockerNetwork.networkName)
+                                .withPortBindings(ports)
                         )
+                        .withEnv(module.dockerConfig.env.map { (key, value) -> "$key=$value" })
                         .withExposedPorts(*exposedPorts)
                         .exec()
 
@@ -121,3 +134,9 @@ fun initModules() {
         }
     }
 }
+
+private fun compareMaps(map1: Map<Int, Int>, map2: Map<Int, Int>): Boolean =
+    map1.all { (key, value) -> map2[key] == value } && map2.all { (key, value) -> map1[key] == value }
+
+private fun compareEnvironmentVariables(containerVariables: Map<String, String>, config: Map<String, String>): Boolean =
+    config.all { (key, value) -> containerVariables[key] == value }

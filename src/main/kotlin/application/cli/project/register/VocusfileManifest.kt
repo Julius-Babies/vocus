@@ -38,9 +38,8 @@ data class VocusfileManifest(
 
     @Serializable
     data class Module(
-        @SerialName("image") val image: String? = null,
         @SerialName("routes") val routes: List<Route> = emptyList(),
-        @SerialName("exposed_ports") val exposedPorts: List<Int> = emptyList(),
+        @SerialName("docker") val docker: DockerConfig? = null,
     ) {
         @Serializable
         data class Route(
@@ -60,5 +59,12 @@ data class VocusfileManifest(
                 }
             }
         }
+
+        @Serializable
+        data class DockerConfig(
+            @SerialName("image") val image: String,
+            @SerialName("exposed_ports") val exposedPorts: Map<Int, Int>,
+            @SerialName("env") val env: Map<String, String> = emptyMap()
+        )
     }
 }

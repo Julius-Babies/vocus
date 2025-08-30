@@ -21,7 +21,6 @@ dependencies {
 
     implementation(libs.kaml)
     implementation(libs.koin.core)
-    implementation(libs.koin.logger.slf4j)
 
     implementation(libs.kotlinx.coroutines.core)
 

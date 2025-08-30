@@ -77,12 +77,13 @@ class RegisterCommand : SuspendingCliktCommand("register") {
                 ),
                 modules = config.modules.mapValues { (_, module) ->
                     ProjectConfig.Module(
-                        dockerConfig = module.image?.let { image ->
+                        dockerConfig = module.docker?.let { dockerConfig ->
                             ProjectConfig.Module.DockerConfig(
-                                image = image.let { image ->
+                                image = dockerConfig.image.let { image ->
                                     if (image.contains(":")) image else "$image:latest"
                                 },
-                                exposedPorts = module.exposedPorts
+                                exposedPorts = dockerConfig.exposedPorts,
+                                env = dockerConfig.env
                             )
                         },
                         routes = module.routes.map { route ->

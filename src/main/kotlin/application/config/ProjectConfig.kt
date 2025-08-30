@@ -52,7 +52,8 @@ data class ProjectConfig(
         @Serializable
         data class DockerConfig(
             @SerialName("image") val image: String,
-            @SerialName("exposed_ports") val exposedPorts: List<Int> = listOf()
+            @SerialName("exposed_ports") val exposedPorts: Map<Int, Int> = emptyMap(),
+            @SerialName("env") val env: Map<String, String> = emptyMap()
         )
 
         @Serializable
