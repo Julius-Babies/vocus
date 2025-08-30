@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.application)
+    alias(libs.plugins.shadow)
 }
 
 group = "dev.babies"
@@ -36,4 +38,17 @@ tasks.test {
 }
 kotlin {
     jvmToolchain(23)
+}
+
+application {
+    mainClass.set("dev.babies.MainKt")
+}
+
+tasks {
+    shadowJar {
+        archiveBaseName.set("app")
+        manifest {
+            attributes["Main-Class"] = application.mainClass
+        }
+    }
 }

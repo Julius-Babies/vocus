@@ -8,6 +8,7 @@ kotlin-crypto = "0.7.0"
 kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.9.0"
 postgresql = "42.7.7"
+shadow = "8.1.1"
 
 [libraries]
 clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }
@@ -31,3 +32,5 @@ postgres = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+application = { id = "application" }
+shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
