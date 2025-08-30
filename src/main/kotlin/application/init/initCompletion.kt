@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.core.BaseCliktCommand
 import dev.babies.application.cli.completion.updateAutocomplete
 import dev.babies.applicationDirectory
 import dev.babies.utils.*
+import org.kotlincrypto.hash.sha1.SHA1
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -12,14 +13,34 @@ val alias = $$"""vocus() {
   java -jar $${applicationDirectory.absolutePath.dropUserHome()} $@
 }
 """
+
+fun needsInstall(): Boolean {
+    val currentPath = JarLocation().jarLocation
+
+    val isRunningFromJar = currentPath.endsWith(".jar")
+    if (!isRunningFromJar) return false
+
+    val appFileHash = appFile.readBytes().let {
+        val sha1 = SHA1()
+        sha1.update(it)
+        sha1.digest().toHexString()
+    }
+
+    val thisFileHash = File(currentPath).readBytes().let {
+        val sha1 = SHA1()
+        sha1.update(it)
+        sha1.digest().toHexString()
+    }
+
+    if (appFileHash != thisFileHash) return true
+    return false
+}
+
 fun initCompletion(
     baseCommand: BaseCliktCommand<*>
 ) {
     val currentPath = JarLocation().jarLocation
-    if (!currentPath.endsWith(".jar")) {
-        // Not running from a jar, nothing to do
-        return
-    }
+    if (!needsInstall()) return
 
     var hasChangedShellConfig = false
     var isInstalled = true
