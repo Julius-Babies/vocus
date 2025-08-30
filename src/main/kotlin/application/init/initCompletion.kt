@@ -20,6 +20,8 @@ fun needsInstall(): Boolean {
     val isRunningFromJar = currentPath.endsWith(".jar")
     if (!isRunningFromJar) return false
 
+    if (!appFile.exists()) return true
+
     val appFileHash = appFile.readBytes().let {
         val sha1 = SHA1()
         sha1.update(it)
