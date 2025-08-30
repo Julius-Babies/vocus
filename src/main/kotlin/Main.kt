@@ -6,12 +6,6 @@ import dev.babies.application.database.postgres.p16.postgres16Module
 import dev.babies.application.database.postgres.pgadmin.pgadminModule
 import dev.babies.application.docker.dockerModule
 import dev.babies.application.docker.network.dockerNetworkModule
-import dev.babies.application.init.initHosts
-import dev.babies.application.init.initPgAdmin
-import dev.babies.application.init.initPostgres16
-import dev.babies.application.init.initSsl
-import dev.babies.application.init.initTraefik
-import dev.babies.application.init.updateDockerNetwork
 import dev.babies.application.os.host.hostsManagerModule
 import dev.babies.application.os.sudoManagerModule
 import dev.babies.application.reverseproxy.traefikModule
@@ -35,13 +29,6 @@ fun main(args: Array<String>) {
                 postgres16Module,
                 pgadminModule
             )
-
-            updateDockerNetwork()
-            initPostgres16()
-            initSsl()
-            initHosts()
-            initTraefik()
-            initPgAdmin()
 
             Main().main(args)
         }
