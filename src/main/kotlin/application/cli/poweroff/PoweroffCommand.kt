@@ -1,6 +1,7 @@
 package dev.babies.application.cli.poweroff
 
 import com.github.ajalt.clikt.command.SuspendingCliktCommand
+import com.github.ajalt.clikt.core.Context
 import dev.babies.application.config.getConfig
 import dev.babies.application.database.postgres.p16.Postgres16
 import dev.babies.application.database.postgres.pgadmin.Pgadmin
@@ -18,6 +19,10 @@ class PoweroffCommand : SuspendingCliktCommand("poweroff"), KoinComponent {
     private val pgadmin by inject<Pgadmin>()
     private val postgres16 by inject<Postgres16>()
     private val traefikService by inject<TraefikService>()
+
+    override fun helpEpilog(context: Context): String {
+        return "Stop all services including those that are used by vocus."
+    }
 
     override suspend fun run() {
         println(green("Powering off vocus...") + " Please wait")

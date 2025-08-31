@@ -24,6 +24,8 @@ class Postgres16(
     image = "postgres:16"
 ), KoinComponent {
 
+    private val postgresPort = if (isDevelopment) 15432 else 5432
+
     override suspend fun createIfMissing() {
         val state = getState()
         if (state == State.Created) return
@@ -44,7 +46,7 @@ class Postgres16(
 
         val exposedPort = ExposedPort.tcp(5432)
         val portBindings = Ports()
-        portBindings.bind(exposedPort, Ports.Binding.bindPort(if (isDevelopment) 15432 else 5432))
+        portBindings.bind(exposedPort, Ports.Binding.bindPort(postgresPort))
 
         val bind = Bind.parse("${dataDirectory.absolutePath}:/var/lib/postgresql/data")
 
@@ -130,7 +132,7 @@ class Postgres16(
         var connection: Connection? = null
         waitUntil("Connection ready") {
             try {
-                connection = DriverManager.getConnection("jdbc:postgresql://localhost:5432/", "vocusdev", "vocus")
+                connection = DriverManager.getConnection("jdbc:postgresql://localhost:$postgresPort/", "vocusdev", "vocus")
                 true
             } catch (_: PSQLException) {
                 false
