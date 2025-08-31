@@ -17,6 +17,8 @@ import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
 
+private const val DATABASE_USER = "vocusdev"
+
 class Postgres16(
     private val dockerNetworkName: String
 ): AbstractPostgresDatabase(
@@ -55,7 +57,7 @@ class Postgres16(
             .withName(containerName)
             .withEnv(
                 "POSTGRES_PASSWORD=vocus",
-                "POSTGRES_USER=vocusdev"
+                "POSTGRES_USER=$DATABASE_USER"
             )
             .withHostConfig(
                 HostConfig()
@@ -118,7 +120,7 @@ class Postgres16(
         }
 
         waitUntil("Postgres $containerName is ready") {
-            dockerClient.runCommand(containerName, listOf("pg_isready", "-U", "vocusdev")) == 0
+            dockerClient.runCommand(containerName, listOf("pg_isready", "-U", DATABASE_USER)) == 0
         }
 
         val databases = getDatabases() - "postgres"
@@ -141,7 +143,7 @@ class Postgres16(
         var connection: Connection? = null
         waitUntil("Connection ready") {
             try {
-                connection = DriverManager.getConnection("jdbc:postgresql://localhost:$postgresPort/", "vocusdev", "vocus")
+                connection = DriverManager.getConnection("jdbc:postgresql://localhost:$postgresPort/", DATABASE_USER, "vocus")
                 true
             } catch (_: PSQLException) {
                 false
@@ -163,9 +165,9 @@ class Postgres16(
             .withRemotePath("/")
             .exec()
 
-        dockerClient.runCommand(containerId, listOf("dropdb", "-U", "vocusdev", "--force", "--if-exists", database))
-        dockerClient.runCommand(containerId, listOf("createdb", "-U", "vocusdev", database))
-        dockerClient.runCommand(containerId, listOf("psql", "-U", "vocusdev", "-d", database, "-f", "/${dumpFile.name}"))
+        dockerClient.runCommand(containerId, listOf("dropdb", "-U", DATABASE_USER, "--force", "--if-exists", database))
+        dockerClient.runCommand(containerId, listOf("createdb", "-U", DATABASE_USER, database))
+        dockerClient.runCommand(containerId, listOf("psql", "-U", DATABASE_USER, "-d", database, "-f", "/${dumpFile.name}"))
 
         if (!wasRunningOnStart) this.stop()
     }
