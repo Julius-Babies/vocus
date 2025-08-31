@@ -39,4 +39,8 @@ abstract class AbstractDockerService(
     suspend fun isRunning(): Boolean {
         return getState() == State.Created && dockerClient.isContainerRunning(containerName)
     }
+
+    suspend fun isCreated(): Boolean {
+        return getState() == State.Created
+    }
 }
