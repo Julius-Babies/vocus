@@ -11,8 +11,19 @@ import kotlinx.serialization.encodeToString
 
 @Serializable
 data class ApplicationConfig(
-    @SerialName("projects") var projects: List<ProjectConfig> = listOf()
-)
+    @SerialName("projects") var projects: List<ProjectConfig> = listOf(),
+    @SerialName("databases") var databases: Database = Database()
+) {
+    @Serializable
+    data class Database(
+        @SerialName("postgres16") var postgres16: Postgres16? = null
+    ) {
+        @Serializable
+        data class Postgres16(
+            @SerialName("databases") var databases: List<String> = listOf()
+        )
+    }
+}
 
 private val configFile = applicationDirectory.resolve("config.yaml")
 fun getConfig(): ApplicationConfig {

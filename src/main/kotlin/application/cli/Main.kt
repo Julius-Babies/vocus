@@ -5,6 +5,7 @@ import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import dev.babies.application.cli.boot.BootCommand
+import dev.babies.application.cli.database.DatabaseCommand
 import dev.babies.application.cli.poweroff.PoweroffCommand
 import dev.babies.application.cli.project.ProjectCommand
 import dev.babies.application.init.initCompletion
@@ -68,7 +69,8 @@ class Main : SuspendingCliktCommand(
         subcommands(
             ProjectCommand(context),
             PoweroffCommand(),
-            BootCommand()
+            BootCommand(),
+            DatabaseCommand()
         )
     }
 }

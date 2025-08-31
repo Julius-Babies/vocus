@@ -4,16 +4,16 @@ import com.github.dockerjava.api.model.Bind
 import com.github.dockerjava.api.model.ExposedPort
 import com.github.dockerjava.api.model.HostConfig
 import com.github.dockerjava.api.model.Ports
+import dev.babies.application.config.ApplicationConfig
+import dev.babies.application.config.updateConfig
 import dev.babies.application.database.postgres.AbstractPostgresDatabase
 import dev.babies.application.docker.COMPOSE_PROJECT_PREFIX
 import dev.babies.isDevelopment
-import dev.babies.utils.docker.doesContainerExist
-import dev.babies.utils.docker.isContainerRunning
-import dev.babies.utils.docker.prepareImage
-import dev.babies.utils.docker.runCommand
+import dev.babies.utils.docker.*
 import dev.babies.utils.waitUntil
 import org.koin.core.component.KoinComponent
 import org.postgresql.util.PSQLException
+import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
 
@@ -91,7 +91,7 @@ class Postgres16(
         getConnection().use {
             // Check if the database exists
             val rs = it.createStatement().executeQuery("SELECT 1 FROM pg_database WHERE datname = '$databaseName'")
-            if (rs.next()) return
+            if (rs.next()) return@use
             rs.close()
 
             val statement = it.createStatement()
@@ -120,6 +120,15 @@ class Postgres16(
         waitUntil("Postgres $containerName is ready") {
             dockerClient.runCommand(containerName, listOf("pg_isready", "-U", "vocusdev")) == 0
         }
+
+        val databases = getDatabases() - "postgres"
+        updateConfig { config ->
+            config.databases.postgres16 = (config.databases.postgres16 ?: ApplicationConfig.Database.Postgres16()).apply {
+                this.databases = databases
+            }
+
+            config
+        }
     }
 
     override suspend fun stop() {
@@ -140,5 +149,24 @@ class Postgres16(
         }
         if (connection == null) throw IllegalStateException("Could not connect to database")
         return connection
+    }
+
+    suspend fun importDatabase(dumpFile: File, database: String) {
+        val wasRunningOnStart = isRunning()
+        this.start()
+        val containerId = dockerClient.getContainerByName(containerName)!!.id
+
+        dockerClient.runCommand(containerId, listOf("rm", "-f", "/${dumpFile.name}"))
+
+        dockerClient.copyArchiveToContainerCmd(containerId)
+            .withHostResource(dumpFile.absolutePath)
+            .withRemotePath("/")
+            .exec()
+
+        dockerClient.runCommand(containerId, listOf("dropdb", "-U", "vocusdev", "--force", "--if-exists", database))
+        dockerClient.runCommand(containerId, listOf("createdb", "-U", "vocusdev", database))
+        dockerClient.runCommand(containerId, listOf("psql", "-U", "vocusdev", "-d", database, "-f", "/${dumpFile.name}"))
+
+        if (!wasRunningOnStart) this.stop()
     }
 }
