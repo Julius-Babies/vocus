@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import dev.babies.application.cli.poweroff.PoweroffCommand
 import dev.babies.application.cli.project.ProjectCommand
 import dev.babies.application.init.initCompletion
 import dev.babies.application.init.install
@@ -63,7 +64,10 @@ class Main : SuspendingCliktCommand(
             executionDirectory = File("."),
         )
 
-        subcommands(ProjectCommand(context))
+        subcommands(
+            ProjectCommand(context),
+            PoweroffCommand()
+        )
     }
 }
 

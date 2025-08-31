@@ -5,8 +5,8 @@ import com.github.ajalt.clikt.core.subcommands
 import dev.babies.application.cli.CommandContext
 import dev.babies.application.cli.project.item.ProjectItemCommand
 import dev.babies.application.cli.project.register.RegisterCommand
-import dev.babies.application.config.ProjectConfig
 import dev.babies.application.config.getConfig
+import dev.babies.application.model.Project
 import dev.babies.utils.blue
 import dev.babies.utils.gray
 
@@ -32,7 +32,7 @@ class ProjectCommand(
         subcommands(
             *projects.map { ProjectItemCommand(ProjectCommandContext(
                 commandContext = commandContext,
-                project = it
+                project = Project.fromConfig(it)
             )) }.toTypedArray(),
             RegisterCommand(),
         )
@@ -41,7 +41,7 @@ class ProjectCommand(
 
 open class ProjectCommandContext(
     commandContext: CommandContext,
-    val project: ProjectConfig
+    val project: Project
 ) : CommandContext(
     executionDirectory = commandContext.executionDirectory,
 )

@@ -4,8 +4,7 @@ import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import dev.babies.application.cli.project.ProjectCommandContext
 import dev.babies.application.cli.project.item.module.item.ModuleItemCommand
-import dev.babies.application.cli.project.item.module.item.SetStateCommand
-import dev.babies.application.config.ProjectConfig
+import dev.babies.application.model.Module
 import dev.babies.utils.aqua
 import dev.babies.utils.gray
 import dev.babies.utils.green
@@ -21,20 +20,24 @@ class ModuleCommand(
         if (currentContext.invokedSubcommand != null) return
         println("Modules for ${project.name}")
         project.modules.forEach { module ->
-            println("- " + aqua(module.key) + " " + (if (module.value.currentState == SetStateCommand.State.Off) gray("disabled") else green(if (module.value.currentState == SetStateCommand.State.Docker) "Docker" else "Local")))
+            print("- ${aqua(module.name)} ")
+            when (module.state) {
+                Module.State.Off -> println(gray("disabled"))
+                Module.State.Docker -> println(green("Docker"))
+                Module.State.Local -> println(green("Local"))
+            }
         }
     }
 
     init {
-        subcommands(project.modules.map { (moduleName, module) ->
-            val moduleItemContext = ModuleItemContext(moduleName, module, projectCommandContext)
+        subcommands(project.modules.map { module ->
+            val moduleItemContext = ModuleItemContext(module, projectCommandContext)
             ModuleItemCommand(moduleItemContext)
         })
     }
 }
 
 open class ModuleItemContext(
-    val moduleName: String,
-    val module: ProjectConfig.Module,
+    val module: Module,
     projectCommandContext: ProjectCommandContext
 ) : ProjectCommandContext(commandContext = projectCommandContext, project = projectCommandContext.project)

@@ -6,7 +6,7 @@ import dev.babies.application.cli.project.item.module.ModuleItemContext
 
 class ModuleItemCommand(
     moduleItemContext: ModuleItemContext
-) : SuspendingCliktCommand(moduleItemContext.moduleName) {
+) : SuspendingCliktCommand(moduleItemContext.module.name) {
     override suspend fun run() {
 
     }

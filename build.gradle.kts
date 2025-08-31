@@ -28,6 +28,8 @@ dependencies {
 
     implementation(libs.kotlincrypto.hash.sha1)
 
+    implementation(libs.log4j.slf4j.impl)
+
     implementation(libs.postgres)
 
     testImplementation(libs.kotest.framework.engine)

@@ -4,9 +4,6 @@ import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.types.enum
 import dev.babies.application.cli.project.item.module.ModuleItemContext
-import dev.babies.application.config.updateConfig
-import dev.babies.application.init.initModules
-import dev.babies.application.init.initTraefik
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.koin.core.component.KoinComponent
@@ -18,7 +15,7 @@ class SetStateCommand(
     val target by argument(
         "TARGET",
         help = "The target module which contains the item state"
-    ).enum<State>()
+    ).enum<State>(ignoreCase = true, key = { it.name.lowercase() })
 
     @Serializable
     enum class State {
@@ -28,22 +25,11 @@ class SetStateCommand(
     }
 
     override suspend fun run() {
-        println("Set ${moduleItemContext.moduleName} state to $target")
-
-        updateConfig { config ->
-            val currentProject = moduleItemContext.project
-            currentProject.modules = currentProject.modules.toMutableMap().apply {
-                this[moduleItemContext.moduleName] = moduleItemContext.module.copy(
-                    currentState = target
-                )
-            }
-
-            config.projects = config.projects.filter { it.name != moduleItemContext.project.name } + currentProject
-
-            config
-        }
-
-        initTraefik()
-        initModules()
+        println("Set ${moduleItemContext.module.name} state to $target")
+        moduleItemContext.module.setState(when(target) {
+            State.Off -> dev.babies.application.model.Module.State.Off
+            State.Docker -> dev.babies.application.model.Module.State.Docker
+            State.Local -> dev.babies.application.model.Module.State.Local
+        })
     }
 }

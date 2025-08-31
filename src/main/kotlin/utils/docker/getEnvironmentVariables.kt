@@ -15,3 +15,7 @@ fun Container.getEnvironmentVariables(): Map<String, String> {
         key to value
     }
 }
+
+fun Map<String, String>.matches(other: Map<String, String>): Boolean {
+    return this.all { (key, value) -> other[key] == value }
+}
