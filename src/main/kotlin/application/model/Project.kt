@@ -33,7 +33,7 @@ class Project(
 
     fun start() {
         modules.forEach {
-
+            it.start()
         }
     }
 }
