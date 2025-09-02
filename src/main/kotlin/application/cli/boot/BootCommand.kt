@@ -7,6 +7,7 @@ import dev.babies.application.init.initHosts
 import dev.babies.application.init.initMongo8
 import dev.babies.application.init.initPgAdmin
 import dev.babies.application.init.initPostgres16
+import dev.babies.application.init.initRabbit4
 import dev.babies.application.init.initSsl
 import dev.babies.application.init.initTraefik
 import org.koin.core.component.KoinComponent
@@ -25,5 +26,6 @@ class BootCommand : SuspendingCliktCommand("boot"), KoinComponent {
         initPostgres16()
         initPgAdmin()
         initMongo8()
+        initRabbit4()
     }
 }
