@@ -32,3 +32,6 @@ fun bold(content: String): String = "${ConsoleStyle.BOLD}$content${ConsoleStyle.
 fun underline(content: String): String = "${ConsoleStyle.UNDERLINE}$content${ConsoleStyle.RESET}"
 
 const val REPLACE_LINE = "\r\u001B[2K"
+
+const val HOUR_GLASS = "⧖"
+const val CHECK = "✓"

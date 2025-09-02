@@ -24,15 +24,13 @@ suspend fun waitUntil(
 ): Boolean {
     val start = Clock.System.now()
     var remaining = timeout
-    var printThreshold = 2.seconds
     while (Clock.System.now() - start < timeout) {
         remaining -= checkInterval
-        if (printThreshold == 0.seconds) print(REPLACE_LINE + gray("Waiting for '$name'. ${timeout-remaining}/$timeout"))
+        print(REPLACE_LINE + gray("Waiting for '$name'. ${timeout-remaining}/$timeout"))
         if (condition()) {
-            if (printThreshold == 0.seconds) print(REPLACE_LINE)
+            print(REPLACE_LINE)
             return true
         }
-        printThreshold = (printThreshold - checkInterval).coerceAtLeast(0.seconds)
         delay(checkInterval)
     }
     println()

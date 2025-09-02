@@ -1,6 +1,7 @@
 package dev.babies
 
 import com.github.ajalt.clikt.command.main
+import com.github.dockerjava.api.DockerClient
 import dev.babies.application.cli.Main
 import dev.babies.application.database.mongo.m8.mongo8Module
 import dev.babies.application.database.postgres.p16.postgres16Module
@@ -13,6 +14,7 @@ import dev.babies.application.os.host.hostsManagerModule
 import dev.babies.application.os.sudoManagerModule
 import dev.babies.application.reverseproxy.traefikModule
 import dev.babies.application.ssl.sslModule
+import dev.babies.utils.docker.prepareImage
 import kotlinx.coroutines.runBlocking
 import org.koin.core.context.startKoin
 import java.io.File
@@ -38,6 +40,8 @@ fun main(args: Array<String>) {
                 pgadminModule,
                 dnsModule
             )
+
+            koin.get<DockerClient>().prepareImage("httpd:latest")
 
             Main().main(args)
         }
