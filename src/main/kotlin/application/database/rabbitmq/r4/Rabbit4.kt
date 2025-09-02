@@ -23,7 +23,7 @@ import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 
 class Rabbit4 : AbstractRabbitInstance(
-    containerName = "rabbit4",
+    containerName = "rabbit4" + if (isDevelopment) "_dev" else "",
     image = "rabbitmq:4.1.3-management"
 ), KoinComponent {
 
@@ -52,6 +52,8 @@ class Rabbit4 : AbstractRabbitInstance(
     }
 
     override suspend fun deleteVHost(vHostName: String) {
+        val existing = getVHosts()
+        if (!existing.contains(vHostName)) return
         val result = dockerClient.runCommand(containerName, listOf("rabbitmqctl", "delete_vhost", vHostName))
         require(result.exitCode == 0) {
             "Something went wrong while deleting vHost $vHostName: ${result.output}"

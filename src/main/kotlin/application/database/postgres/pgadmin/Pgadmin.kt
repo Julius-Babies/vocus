@@ -11,6 +11,7 @@ import dev.babies.application.os.host.vocusDomain
 import dev.babies.application.reverseproxy.RouterDestination
 import dev.babies.application.reverseproxy.TraefikService
 import dev.babies.applicationDirectory
+import dev.babies.isDevelopment
 import dev.babies.utils.docker.doesContainerExist
 import dev.babies.utils.docker.isContainerRunning
 import dev.babies.utils.docker.prepareImage
@@ -20,7 +21,7 @@ import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 
 class Pgadmin : AbstractDockerService(
-    containerName = "pgadmin",
+    containerName = "pgadmin" + if (isDevelopment) "_dev" else "",
     image = "dpage/pgadmin4:latest"
 ), KoinComponent {
 
