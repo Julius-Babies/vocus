@@ -40,9 +40,14 @@ class Rabbit4 : AbstractRabbitInstance(
     }
 
     override suspend fun createVHost(vHostName: String) {
-        val result = dockerClient.runCommand(containerName, listOf("rabbitmqctl", "add_vhost", vHostName))
-        require(result.exitCode == 0) {
-            "Something went wrong while creating vHost $vHostName: ${result.output}"
+        val createVHostResult = dockerClient.runCommand(containerName, listOf("rabbitmqctl", "add_vhost", vHostName))
+        require(createVHostResult.exitCode == 0) {
+            "Something went wrong while creating vHost $vHostName: ${createVHostResult.output}"
+        }
+
+        val setPermissionResult = dockerClient.runCommand(containerName, listOf("rabbitmqctl", "set_permissions", "-p", vHostName, "vocusdev", ".*", ".*", ".*"))
+        require(setPermissionResult.exitCode == 0) {
+            "Something went wrong while setting permissions for vHost $vHostName: ${setPermissionResult.output}"
         }
     }
 
