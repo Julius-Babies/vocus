@@ -3,8 +3,10 @@ package dev.babies.application.cli.poweroff
 import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.core.Context
 import dev.babies.application.config.getConfig
+import dev.babies.application.database.mongo.m8.Mongo8Database
 import dev.babies.application.database.postgres.p16.Postgres16
 import dev.babies.application.database.postgres.pgadmin.Pgadmin
+import dev.babies.application.database.rabbitmq.r4.Rabbit4
 import dev.babies.application.dns.AndroidDnsService
 import dev.babies.application.model.Project
 import dev.babies.application.reverseproxy.TraefikService
@@ -19,6 +21,8 @@ class PoweroffCommand : SuspendingCliktCommand("poweroff"), KoinComponent {
     private val pgadmin by inject<Pgadmin>()
     private val postgres16 by inject<Postgres16>()
     private val traefikService by inject<TraefikService>()
+    private val mongo8 by inject<Mongo8Database>()
+    private val rabbit4 by inject<Rabbit4>()
 
     override fun helpEpilog(context: Context): String {
         return "Stop all services including those that are used by vocus."
@@ -28,7 +32,7 @@ class PoweroffCommand : SuspendingCliktCommand("poweroff"), KoinComponent {
         println(green("Powering off vocus...") + " Please wait")
         println()
 
-        val services = listOf(dnsService, pgadmin, postgres16, traefikService)
+        val services = listOf(dnsService, pgadmin, postgres16, traefikService, mongo8, rabbit4)
 
         getConfig().projects
             .map { project -> Project.fromConfig(project) }

@@ -81,12 +81,16 @@ class Mongo8Database: AbstractMongoDatabase(
 
     override suspend fun getDatabases(): List<String> {
         getConnection().use { client ->
-            return client.listDatabases().toList().map { document -> document.getString("name") }
+            val databases = client.listDatabaseNames().toList()
+            return databases
         }
     }
 
     override suspend fun createDatabase(databaseName: String) {
         getConnection().use { client ->
+            val users = client.getDatabase(databaseName).runCommand(Document("usersInfo", 1))
+            val existingUsers = (users["users"] as List<*>).map { (it as Document).getString("user") }
+            if (existingUsers.contains("vocusdev")) return
             client.getDatabase(databaseName).runCommand(
                 Document("createUser", "vocusdev")
                     .append("pwd", "vocus")

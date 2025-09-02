@@ -10,6 +10,7 @@ import dev.babies.application.config.updateConfig
 import dev.babies.application.init.initHosts
 import dev.babies.application.init.initMongo8
 import dev.babies.application.init.initPostgres16
+import dev.babies.application.init.initRabbit4
 import dev.babies.application.init.initSsl
 import dev.babies.application.init.updateDockerNetwork
 import dev.babies.utils.aqua
@@ -78,6 +79,11 @@ class RegisterCommand : SuspendingCliktCommand("register") {
                             ProjectConfig.Infrastructure.Databases.Mongo8(
                                 databases = databaseConfig.databases
                             )
+                        },
+                        rabbit4 = config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Rabbit && it.version in setOf("latest", "4") }?.let { databaseConfig ->
+                            ProjectConfig.Infrastructure.Databases.Rabbit4(
+                                vhosts = databaseConfig.databases
+                            )
                         }
                     )
                 ),
@@ -111,6 +117,7 @@ class RegisterCommand : SuspendingCliktCommand("register") {
 
         if (config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Postgres && it.version == "16" } != null) initPostgres16()
         if (config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Mongo && it.version in setOf("latest", "8") } != null) initMongo8()
+        if (config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Rabbit && it.version in setOf("latest", "4") } != null) initRabbit4()
 
         initSsl()
         initHosts()

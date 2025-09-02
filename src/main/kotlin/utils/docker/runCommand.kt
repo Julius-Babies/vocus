@@ -6,7 +6,7 @@ import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
 import dev.babies.utils.red
 
-fun DockerClient.runCommand(containerId: String, command: List<String>): Int {
+fun DockerClient.runCommand(containerId: String, command: List<String>): CommandResult {
     try {
         val exec = this.execCreateCmd(containerId)
             .withAttachStdout(true)
@@ -14,6 +14,7 @@ fun DockerClient.runCommand(containerId: String, command: List<String>): Int {
             .withCmd(*command.toTypedArray())
             .exec()
 
+        val output = StringBuilder()
         val execResult = this
             .execStartCmd(exec.id)
             .exec(object : ResultCallback.Adapter<Frame>() {
@@ -23,6 +24,7 @@ fun DockerClient.runCommand(containerId: String, command: List<String>): Int {
                         StreamType.STDERR -> {
                             if (!payload.startsWith("NOTICE")) println(red(payload))
                         }
+                        StreamType.STDOUT -> output.append(payload)
                         else -> Unit
                     }
                 }
@@ -31,9 +33,11 @@ fun DockerClient.runCommand(containerId: String, command: List<String>): Int {
 
         val inspectResponse = this.inspectExecCmd(exec.id).exec()
 
-        return inspectResponse.exitCodeLong?.toInt() ?: 0
+        return CommandResult(inspectResponse.exitCodeLong?.toInt() ?: 0, output.toString())
     } catch (e: Exception) {
         println(red("Error executing command in container $containerId: ${e.stackTraceToString()}"))
         throw e
     }
 }
+
+data class CommandResult(val exitCode: Int, val output: String)

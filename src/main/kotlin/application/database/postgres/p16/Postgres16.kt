@@ -120,7 +120,7 @@ class Postgres16(
         }
 
         waitUntil("Postgres $containerName is ready") {
-            dockerClient.runCommand(containerName, listOf("pg_isready", "-U", DATABASE_USER)) == 0
+            dockerClient.runCommand(containerName, listOf("pg_isready", "-U", DATABASE_USER)).exitCode == 0
         }
 
         val databases = getDatabases() - "postgres"

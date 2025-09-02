@@ -33,6 +33,7 @@ data class VocusfileManifest(
             enum class Type {
                 @SerialName("postgres") Postgres,
                 @SerialName("mongo") Mongo,
+                @SerialName("rabbit") Rabbit
             }
         }
     }
