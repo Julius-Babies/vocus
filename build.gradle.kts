@@ -30,6 +30,7 @@ dependencies {
 
     implementation(libs.log4j.slf4j.impl)
 
+    implementation(libs.mongo.driver.coroutines)
     implementation(libs.postgres)
 
     testImplementation(libs.kotest.framework.engine)

@@ -34,10 +34,16 @@ data class ProjectConfig(
     ) {
         @Serializable
         data class Databases(
-            @SerialName("postgres16") var postgres16: Postgres16? = Postgres16()
+            @SerialName("postgres16") var postgres16: Postgres16? = Postgres16(),
+            @SerialName("mongo8") var mongo8: Mongo8? = Mongo8()
         ) {
             @Serializable
             data class Postgres16(
+                @SerialName("databases") var databases: List<String> = listOf()
+            )
+
+            @Serializable
+            data class Mongo8(
                 @SerialName("databases") var databases: List<String> = listOf()
             )
         }

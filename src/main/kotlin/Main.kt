@@ -2,6 +2,7 @@ package dev.babies
 
 import com.github.ajalt.clikt.command.main
 import dev.babies.application.cli.Main
+import dev.babies.application.database.mongo.m8.mongo8Module
 import dev.babies.application.database.postgres.p16.postgres16Module
 import dev.babies.application.database.postgres.pgadmin.pgadminModule
 import dev.babies.application.dns.dnsModule
@@ -31,6 +32,7 @@ fun main(args: Array<String>) {
                 hostsManagerModule,
                 traefikModule,
                 postgres16Module,
+                mongo8Module,
                 pgadminModule,
                 dnsModule
             )

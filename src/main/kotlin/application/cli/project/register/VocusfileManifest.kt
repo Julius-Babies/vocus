@@ -31,7 +31,8 @@ data class VocusfileManifest(
         ) {
             @Serializable
             enum class Type {
-                @SerialName("postgres") Postgres
+                @SerialName("postgres") Postgres,
+                @SerialName("mongo") Mongo,
             }
         }
     }

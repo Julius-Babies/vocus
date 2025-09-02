@@ -16,6 +16,7 @@ val vocusHosts = setOf(
     DomainBuilder(vocusDomain).addSubdomain("infra").addSubdomain("pgadmin").toString(),
     DomainBuilder(vocusDomain).addSubdomain("infra").addSubdomain("traefik").toString(),
     DomainBuilder(vocusDomain).addSubdomain("infra").addSubdomain("rabbitmq").toString(),
+    DomainBuilder(vocusDomain).addSubdomain("infra").addSubdomain("mongo").toString(),
 )
 
 fun initHosts() {

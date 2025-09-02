@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.core.Context
 import dev.babies.application.init.initDns
 import dev.babies.application.init.initHosts
+import dev.babies.application.init.initMongo8
 import dev.babies.application.init.initPgAdmin
 import dev.babies.application.init.initPostgres16
 import dev.babies.application.init.initSsl
@@ -23,5 +24,6 @@ class BootCommand : SuspendingCliktCommand("boot"), KoinComponent {
         initDns()
         initPostgres16()
         initPgAdmin()
+        initMongo8()
     }
 }

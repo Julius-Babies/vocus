@@ -9,6 +9,7 @@ kotlin-crypto = "0.7.0"
 kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.9.0"
 log4j-slf4j-impl = "2.21.0"
+mongo = "5.5.1"
 postgresql = "42.7.7"
 shadow = "8.1.1"
 
@@ -33,6 +34,8 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
 log4j-slf4j-impl = { module = "org.apache.logging.log4j:log4j-slf4j-impl", version.ref = "log4j-slf4j-impl" }
+
+mongo-driver-coroutines = { module = "org.mongodb:mongodb-driver-kotlin-coroutine", version.ref = "mongo" }
 
 postgres = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 

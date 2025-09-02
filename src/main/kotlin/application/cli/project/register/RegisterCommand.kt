@@ -8,6 +8,7 @@ import dev.babies.application.config.ProjectConfig
 import dev.babies.application.config.getConfig
 import dev.babies.application.config.updateConfig
 import dev.babies.application.init.initHosts
+import dev.babies.application.init.initMongo8
 import dev.babies.application.init.initPostgres16
 import dev.babies.application.init.initSsl
 import dev.babies.application.init.updateDockerNetwork
@@ -68,8 +69,13 @@ class RegisterCommand : SuspendingCliktCommand("register") {
                 name = config.name.lowercase(),
                 infrastructure = ProjectConfig.Infrastructure(
                     databases = ProjectConfig.Infrastructure.Databases(
-                        postgres16 = config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Postgres && it.version == "16" }?.let { databaseConfig ->
+                        postgres16 = config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Postgres && it.version in setOf("16") }?.let { databaseConfig ->
                             ProjectConfig.Infrastructure.Databases.Postgres16(
+                                databases = databaseConfig.databases
+                            )
+                        },
+                        mongo8 = config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Mongo && it.version in setOf("latest", "8") }?.let { databaseConfig ->
+                            ProjectConfig.Infrastructure.Databases.Mongo8(
                                 databases = databaseConfig.databases
                             )
                         }
@@ -104,6 +110,8 @@ class RegisterCommand : SuspendingCliktCommand("register") {
         }
 
         if (config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Postgres && it.version == "16" } != null) initPostgres16()
+        if (config.infrastructure?.databases?.firstOrNull { it.type == VocusfileManifest.Infrastructure.Database.Type.Mongo && it.version in setOf("latest", "8") } != null) initMongo8()
+
         initSsl()
         initHosts()
     }
