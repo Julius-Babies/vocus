@@ -36,4 +36,10 @@ class Project(
             it.start()
         }
     }
+
+    fun stop() {
+        modules.forEach {
+            it.poweroff()
+        }
+    }
 }

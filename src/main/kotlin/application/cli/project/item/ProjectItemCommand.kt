@@ -13,6 +13,7 @@ class ProjectItemCommand(
     init {
         subcommands(
             UpCommand(commandContext),
+            DownCommand(commandContext),
             ModuleCommand(commandContext)
         )
     }
