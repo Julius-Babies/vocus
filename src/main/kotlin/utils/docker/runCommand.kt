@@ -6,7 +6,7 @@ import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
 import dev.babies.utils.red
 
-fun DockerClient.runCommand(containerId: String, command: List<String>): CommandResult {
+fun DockerClient.runCommand(containerId: String, command: List<String>, suppressErrors: Boolean = false): CommandResult {
     try {
         val exec = this.execCreateCmd(containerId)
             .withAttachStdout(true)
@@ -22,7 +22,7 @@ fun DockerClient.runCommand(containerId: String, command: List<String>): Command
                     val payload = String(frame.payload).dropLastWhile { it == '\n' || it == '\r' }
                     when (frame.streamType) {
                         StreamType.STDERR -> {
-                            if (!payload.startsWith("NOTICE")) println(red(payload))
+                            if (!payload.startsWith("NOTICE") && !suppressErrors) println(red(payload))
                         }
                         StreamType.STDOUT -> output.append(payload)
                         else -> Unit

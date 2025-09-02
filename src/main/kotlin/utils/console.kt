@@ -30,3 +30,5 @@ fun white(content: String): String = "${ConsoleStyle.WHITE}$content${ConsoleStyl
 fun gray(content: String): String = "${ConsoleStyle.GRAY}$content${ConsoleStyle.RESET}"
 fun bold(content: String): String = "${ConsoleStyle.BOLD}$content${ConsoleStyle.RESET}"
 fun underline(content: String): String = "${ConsoleStyle.UNDERLINE}$content${ConsoleStyle.RESET}"
+
+const val REPLACE_LINE = "\r\u001B[2K"

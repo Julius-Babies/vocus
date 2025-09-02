@@ -116,7 +116,11 @@ class Rabbit4 : AbstractRabbitInstance(
         if (!dockerClient.isContainerRunning(containerName)) {
             dockerClient.startContainerCmd(containerName).exec()
             waitUntil("RabbitMQ $containerName to start") {
-                dockerClient.runCommand(containerName, listOf("rabbitmqctl", "status")).exitCode == 0
+                dockerClient.runCommand(
+                    containerId = containerName,
+                    command = listOf("rabbitmqctl", "status"),
+                    suppressErrors = true
+                ).exitCode == 0
             }
         }
 

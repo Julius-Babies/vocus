@@ -10,6 +10,7 @@ import dev.babies.application.database.rabbitmq.r4.Rabbit4
 import dev.babies.application.dns.AndroidDnsService
 import dev.babies.application.model.Project
 import dev.babies.application.reverseproxy.TraefikService
+import dev.babies.utils.REPLACE_LINE
 import dev.babies.utils.blue
 import dev.babies.utils.green
 import org.koin.core.component.KoinComponent
@@ -42,7 +43,7 @@ class PoweroffCommand : SuspendingCliktCommand("poweroff"), KoinComponent {
             if (!service.isRunning()) return@forEach
             print("⌛ Stopping " + blue(service.containerName))
             service.stop()
-            println("\r✅ Stopped " + blue(service.containerName))
+            println("${REPLACE_LINE}✅ Stopped " + blue(service.containerName))
         }
 
         println()
