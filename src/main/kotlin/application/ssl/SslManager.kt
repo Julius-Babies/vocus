@@ -1,5 +1,7 @@
 package dev.babies.application.ssl
 
+import dev.babies.application.os.host.DomainBuilder
+import dev.babies.application.os.host.vocusDomain
 import dev.babies.applicationDirectory
 import dev.babies.isDevelopment
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
@@ -199,11 +201,10 @@ class SslManager {
             certBuilder.addExtension(Extension.extendedKeyUsage, false, eku)
 
             val names = mutableListOf<GeneralName>()
-            names.add(GeneralName(GeneralName.dNSName, commonName))
             for (sd in allDomains) {
                 if (sd.isNotBlank()) {
-                    val dns = if (sd.contains('.')) sd else "$sd.$commonName"
-                    names.add(GeneralName(GeneralName.dNSName, dns))
+                    val domain = DomainBuilder(sd).buildAsSubdomain(skipIfSuffixAlreadyPresent = true, suffix = vocusDomain)
+                    names.add(GeneralName(GeneralName.dNSName, domain))
                 }
             }
             val san = GeneralNames(names.toTypedArray())
