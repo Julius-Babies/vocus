@@ -43,7 +43,7 @@ class PoweroffCommand : SuspendingCliktCommand("poweroff"), KoinComponent {
             if (!service.isRunning()) return@forEach
             print("⌛ Stopping " + blue(service.containerName))
             service.stop()
-            println("${REPLACE_LINE}✅ Stopped " + blue(service.containerName))
+            println("${REPLACE_LINE}✓ Stopped " + blue(service.containerName))
         }
 
         println()

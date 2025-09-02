@@ -15,6 +15,7 @@ import dev.babies.application.os.host.DomainBuilder
 import dev.babies.application.os.host.vocusDomain
 import dev.babies.application.reverseproxy.RouterDestination
 import dev.babies.application.reverseproxy.TraefikService
+import dev.babies.utils.REPLACE_LINE
 import dev.babies.utils.blue
 import dev.babies.utils.docker.getContainerByName
 import dev.babies.utils.docker.getEnvironmentVariables
@@ -103,7 +104,7 @@ class Module(
             .removeContainerCmd(container.id)
             .withForce(true)
             .exec()
-        println("\r✅ Stopped " + blue(project.name + "/" + name))
+        println("$REPLACE_LINE✓ Stopped " + blue(project.name + "/" + name))
     }
 
     fun start() {
@@ -162,9 +163,9 @@ class Module(
                     .withExposedPorts(*exposedPorts)
                     .exec()
 
-                print("\r\uD83D\uDC3A Starting new Docker container for module $consoleContainerName")
+                print("\r⧖ Starting new Docker container for module $consoleContainerName")
                 dockerClient.startContainerCmd(dockerContainerName).exec()
-                println("\r✅ Started new Docker container for module $consoleContainerName")
+                println("$REPLACE_LINE✓ Started new Docker container for module $consoleContainerName")
             }
         }
 
