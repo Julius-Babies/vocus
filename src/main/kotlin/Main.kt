@@ -9,6 +9,7 @@ import dev.babies.application.database.rabbitmq.r4.rabbit4Module
 import dev.babies.application.dns.dnsModule
 import dev.babies.application.docker.dockerModule
 import dev.babies.application.docker.network.dockerNetworkModule
+import dev.babies.application.init.initCompletion
 import dev.babies.application.os.host.hostsManagerModule
 import dev.babies.application.os.sudoManagerModule
 import dev.babies.application.reverseproxy.traefikModule
@@ -39,7 +40,9 @@ fun main(args: Array<String>) {
                 dnsModule
             )
 
-            Main().main(args)
+            Main()
+                .also { it.main(args) }
+                .also { initCompletion(it) }
         }
     }
 }

@@ -37,7 +37,6 @@ class Main : SuspendingCliktCommand(
             initCompletion(this, shellChanged = true)
             return
         }
-        initCompletion(this)
 
         if (currentContext.invokedSubcommand != null) return
 

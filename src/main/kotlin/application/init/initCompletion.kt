@@ -2,8 +2,10 @@ package dev.babies.application.init
 
 import com.github.ajalt.clikt.core.BaseCliktCommand
 import dev.babies.application.cli.completion.updateAutocomplete
+import dev.babies.utils.gray
 import dev.babies.utils.green
 import dev.babies.utils.red
+import dev.babies.utils.yellow
 import kotlin.system.exitProcess
 
 fun initCompletion(
@@ -28,13 +30,19 @@ fun initCompletion(
     }
 
     if (hasChangedShellConfig) {
-        println(buildString {
-            append("Please restart your shell using ")
-            append(green(when (currentShell) {
-                "/bin/zsh" -> "source ~/.zshrc"
-                "/bin/bash" -> "source ~/.bashrc"
-                else -> "your shell specific command"
-            }))
-        })
+        val reloadCommand = when (currentShell) {
+            "/bin/zsh" -> "source ~/.zshrc"
+            "/bin/bash" -> "source ~/.bashrc"
+            else -> null
+        }
+
+        // Reload shell
+        if (reloadCommand != null) {
+            println("Reloading shell...")
+            println(gray("> ") + green(reloadCommand))
+            Runtime.getRuntime().exec(reloadCommand.split(" ").toTypedArray())
+        } else {
+            println(yellow("Please reload your shell to use autocomplete"))
+        }
     }
 }
