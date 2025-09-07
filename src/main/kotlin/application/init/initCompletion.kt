@@ -1,6 +1,7 @@
 package dev.babies.application.init
 
 import com.github.ajalt.clikt.core.BaseCliktCommand
+import com.sun.jna.Platform
 import dev.babies.application.cli.completion.updateAutocomplete
 import dev.babies.utils.dropUserHome
 import dev.babies.utils.gray
@@ -41,12 +42,25 @@ fun initCompletion(
         if (reloadCommand != null) {
             println("Reloading shell...")
             println(gray("> ") + green("$currentShell $reloadCommand"))
-            val process = ProcessBuilder(currentShell, reloadCommand).inheritIO().start()
+            val process = ProcessBuilder(currentShell, reloadCommand).start()
+            val errorText = process.errorStream.bufferedReader().readText().let {
+                it.dropLastWhile { c -> c in setOf('\n', '\r', ' ') }
+            }
             process.waitFor()
-            println(red(process.errorStream.bufferedReader().readText()))
-            println(green(process.inputStream.bufferedReader().readText()))
-            println("If you receive an error like " + yellow("/bin/zsh: can't open input file: ~/.vocus/autocomplete.zsh") + " and you are using macOS, make sure to grant the java binary full disk access in system settings. See " + yellow("https://apple.stackexchange.com/questions/402132/cronjobs-do-not-run/402179#402179") + " for a similar problem.")
-            println("Reload complete.")
+            if (errorText.isNotBlank()) {
+                println(red("Failed to reload shell: '$errorText'"))
+                if (errorText == "/bin/zsh: can't open input file: ~/.vocus/autocomplete.zsh") {
+                    if (Platform.isMac()) {
+                        println(yellow("The process couldn't read the autocomplete file, so a full shell reload will be run every time the autocomplete changes."))
+                        println(yellow("To prevent this, please grant the java binary full disk access in system settings. See https://apple.stackexchange.com/questions/402132/cronjobs-do-not-run/402179#402179 for a similar problem."))
+                        println(yellow("  1. Find out, which java binary is used: ") + gray("which java"))
+                        println(yellow("  2. Grant full disk access to this binary in system settings."))
+                        println(yellow("    -> Privacy & Security"))
+                        println(yellow("    -> Full disk access"))
+                        println(yellow("    -> Add java binary (via the little plus icon)"))
+                    }
+                }
+            } else println("Reload complete.")
         } else {
             println(yellow("Please reload your shell to use autocomplete"))
         }
