@@ -31,15 +31,15 @@ fun initCompletion(
 
     if (hasChangedShellConfig) {
         val reloadCommand = when (currentShell) {
-            "/bin/zsh" -> "source ~/.zshrc"
-            "/bin/bash" -> "source ~/.bashrc"
+            "/bin/zsh" -> "-i"
+            "/bin/bash" -> "-i"
             else -> null
         }
 
         // Reload shell
         if (reloadCommand != null) {
             println("Reloading shell...")
-            println(gray("> ") + green(reloadCommand))
+            println(gray("> ") + green("$currentShell $reloadCommand"))
             val process = ProcessBuilder(currentShell, reloadCommand).inheritIO().start()
             process.waitFor()
         } else {
