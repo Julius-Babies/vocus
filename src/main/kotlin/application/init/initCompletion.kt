@@ -7,7 +7,6 @@ import dev.babies.utils.gray
 import dev.babies.utils.green
 import dev.babies.utils.red
 import dev.babies.utils.yellow
-import java.nio.charset.StandardCharsets
 import kotlin.system.exitProcess
 
 fun initCompletion(

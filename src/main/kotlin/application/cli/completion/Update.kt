@@ -7,13 +7,11 @@ import dev.babies.isDevelopment
 import dev.babies.utils.red
 import org.kotlincrypto.hash.sha1.SHA1
 import java.io.File
-import dev.babies.application.cli.completion.getConfig as getAutocompleteConfig
 
 fun updateAutocomplete(
     baseCommand: BaseCliktCommand<*>,
     currentShell: String
 ): UpdateAutocompleteResult {
-    val config = getAutocompleteConfig()
 
     var hasChangedShellConfig = false
     val autocompleteFile: File
@@ -26,12 +24,15 @@ fun updateAutocomplete(
                 sha1.update(autocomplete.toByteArray())
                 sha1.digest().toHexString()
             }
-            val hasAutocompleteChanged = hash != config.zsh.lastCommandHash
+            val hasAutocompleteChanged = !autocompleteFile.exists() || hash != autocompleteFile.readText().let {
+                val sha1 = SHA1()
+                sha1.update(it.toByteArray())
+                sha1.digest().toHexString()
+            }
             if (hasAutocompleteChanged) {
-                if (config.zsh.lastCommandHash == null) println("Installing autocomplete")
+                if (!autocompleteFile.exists()) println("Installing autocomplete")
                 else println("Updating autocomplete")
                 autocompleteFile.writeText(autocomplete)
-                writeConfig(config.copy(zsh = config.zsh.copy(lastCommandHash = hash)))
                 hasChangedShellConfig = true
             }
 
