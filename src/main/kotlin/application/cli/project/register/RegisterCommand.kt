@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.parameters.options.defaultLazy
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.path
+import dev.babies.application.cli.project.item.module.item.SetStateCommand
 import dev.babies.application.config.ProjectConfig
 import dev.babies.application.config.getConfig
 import dev.babies.application.config.updateConfig
@@ -65,6 +66,7 @@ class RegisterCommand : SuspendingCliktCommand("register") {
         }
 
         updateConfig { applicationConfig ->
+            val existing = applicationConfig.projects.firstOrNull { it.name == config.name.lowercase() }
             applicationConfig.projects = applicationConfig.projects.filterNot { it.name == config.name.lowercase() }
             applicationConfig.projects += ProjectConfig(
                 name = config.name.lowercase(),
@@ -87,7 +89,8 @@ class RegisterCommand : SuspendingCliktCommand("register") {
                         }
                     )
                 ),
-                modules = config.modules.mapValues { (_, module) ->
+                modules = config.modules.mapValues { (name, module) ->
+                    val existingModule = existing?.modules?.get(name)
                     ProjectConfig.Module(
                         dockerConfig = module.docker?.let { dockerConfig ->
                             ProjectConfig.Module.DockerConfig(
@@ -107,7 +110,8 @@ class RegisterCommand : SuspendingCliktCommand("register") {
                                     host = route.ports?.host
                                 )
                             )
-                        }
+                        },
+                        currentState = existingModule?.currentState ?: SetStateCommand.State.Off
                     )
                 }
             )

@@ -59,7 +59,7 @@ data class ProjectConfig(
     data class Module(
         @SerialName("docker_config") val dockerConfig: DockerConfig?,
         @SerialName("routes") val routes: List<Route> = emptyList(),
-        @SerialName("current_state") val currentState: SetStateCommand.State = SetStateCommand.State.Off
+        @SerialName("current_state") val currentState: SetStateCommand.State
     ) {
         @Serializable
         data class DockerConfig(
