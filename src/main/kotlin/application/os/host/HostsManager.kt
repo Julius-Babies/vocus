@@ -135,7 +135,7 @@ class HostsManager(): KoinComponent {
         if (shouldContinue) {
             println(red("We will modify the hosts file. You may have to enter your password first."))
             val password = sudoManager.get()
-            val command = "echo '$password' | sudo -S sh -c \"mv ${tempFile.absolutePath} ${hostsFile.absolutePath}\""
+            val command = "echo '$password' | sudo -S sh -c \"mv ${tempFile.canonicalPath} ${hostsFile.canonicalPath}\""
             Runtime.getRuntime().exec(arrayOf("sh", "-c", command)).waitFor()
         }
 

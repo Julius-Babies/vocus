@@ -20,7 +20,7 @@ class ImportCommand(
     ).file(mustExist = true, canBeDir = false, mustBeReadable = true)
 
     override suspend fun run() {
-        println("Importing ${sqlDump.absolutePath} into ${blue("postgres16/$databaseName")}")
+        println("Importing ${sqlDump.canonicalPath} into ${blue("postgres16/$databaseName")}")
 
         database.importDatabase(dumpFile = sqlDump, database = databaseName)
 

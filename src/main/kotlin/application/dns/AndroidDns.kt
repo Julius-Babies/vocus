@@ -39,7 +39,7 @@ class AndroidDnsService: AbstractDockerService(
         portBindings.bind(exposedDnsPortUdp, Ports.Binding.bindPort(53))
         portBindings.bind(exposedDnsPortTcp, Ports.Binding.bindPort(53))
 
-        val configFileBinding = Bind.parse("${configFile.absolutePath}:/etc/unbound/unbound.conf:ro")
+        val configFileBinding = Bind.parse("${configFile.canonicalPath}:/etc/unbound/unbound.conf:ro")
 
         dockerClient.createContainerCmd(image)
             .withName(containerName)

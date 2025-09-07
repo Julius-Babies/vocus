@@ -52,7 +52,7 @@ class Mongo8Database: AbstractMongoDatabase(
         val portBindings = Ports()
         portBindings.bind(exposedPort, Ports.Binding.bindPort(mongoDbPort))
 
-        val bind = Bind.parse("${dataDirectory.absolutePath}:/data/db")
+        val bind = Bind.parse("${dataDirectory.canonicalPath}:/data/db")
 
         dockerClient
             .createContainerCmd(image)

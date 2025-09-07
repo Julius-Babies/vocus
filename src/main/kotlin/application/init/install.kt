@@ -13,8 +13,8 @@ import kotlin.system.exitProcess
 
 val appFile = applicationDirectory.resolve("app.jar")
 val alias = $$"""vocus() {
-  java -jar $${applicationDirectory.absolutePath.dropUserHome()}/app.jar $@
-  source $${applicationDirectory.resolve("autocomplete.zsh").absolutePath}
+  java -jar $${applicationDirectory.canonicalPath.dropUserHome()}/app.jar $@
+  source $${applicationDirectory.resolve("autocomplete.zsh").canonicalPath}
 }
 """
 
@@ -52,10 +52,10 @@ fun install() {
         exitProcess(1)
     }
 
-    if (currentPath != appFile.absolutePath) {
+    if (currentPath != appFile.canonicalPath) {
         println(green("✨ We're installing vocus into your user home so you can access it from any directory."))
-        println("Installing into " + gray(applicationDirectory.absolutePath))
-        println("Copying jar file from ${gray(currentPath.dropUserHome())} to ${gray(appFile.absolutePath.dropUserHome())}")
+        println("Installing into " + gray(applicationDirectory.canonicalPath))
+        println("Copying jar file from ${gray(currentPath.dropUserHome())} to ${gray(appFile.canonicalPath.dropUserHome())}")
         val currentFile = File(currentPath)
         if (!isDevelopment) currentFile.copyTo(appFile, overwrite = true)
 

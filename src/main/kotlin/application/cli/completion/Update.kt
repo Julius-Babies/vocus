@@ -39,11 +39,11 @@ fun updateAutocomplete(
             val zshrcFile = File(System.getProperty("user.home") + "/.zshrc")
             val lines = zshrcFile.readLines()
             val hasAutocomplete = lines.any { line ->
-                line == "source ${autocompleteFile.absolutePath}"
+                line == "source ${autocompleteFile.canonicalPath}"
             }
             if (!hasAutocomplete) {
                 println("Adding autocomplete to your zshrc file")
-                if (!isDevelopment) zshrcFile.appendText("\nsource ${autocompleteFile.absolutePath}")
+                if (!isDevelopment) zshrcFile.appendText("\nsource ${autocompleteFile.canonicalPath}")
                 hasChangedShellConfig = true
             }
         }

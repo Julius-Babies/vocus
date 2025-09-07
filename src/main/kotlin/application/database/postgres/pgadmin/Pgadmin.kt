@@ -55,7 +55,7 @@ class Pgadmin : AbstractDockerService(
         pgAdminDirectory.deleteRecursively()
         pgAdminDirectory.mkdirs()
 
-        val dataBind = Bind.parse("${pgAdminDirectory.absolutePath}:/var/lib/pgadmin")
+        val dataBind = Bind.parse("${pgAdminDirectory.canonicalPath}:/var/lib/pgadmin")
 
         dockerClient
             .createContainerCmd(image)

@@ -50,7 +50,7 @@ class Postgres16(
         val portBindings = Ports()
         portBindings.bind(exposedPort, Ports.Binding.bindPort(postgresPort))
 
-        val bind = Bind.parse("${dataDirectory.absolutePath}:/var/lib/postgresql/data")
+        val bind = Bind.parse("${dataDirectory.canonicalPath}:/var/lib/postgresql/data")
 
         dockerClient
             .createContainerCmd(image)
@@ -161,7 +161,7 @@ class Postgres16(
         dockerClient.runCommand(containerId, listOf("rm", "-f", "/${dumpFile.name}"))
 
         dockerClient.copyArchiveToContainerCmd(containerId)
-            .withHostResource(dumpFile.absolutePath)
+            .withHostResource(dumpFile.canonicalPath)
             .withRemotePath("/")
             .exec()
 

@@ -83,7 +83,7 @@ class Rabbit4 : AbstractRabbitInstance(
         val portBindings = Ports()
         portBindings.bind(exposedPort, Ports.Binding.bindPort(rabbitPort))
 
-        val binds = Bind.parse("${dataDirectory.absolutePath}:/var/lib/rabbitmq")
+        val binds = Bind.parse("${dataDirectory.canonicalPath}:/var/lib/rabbitmq")
 
         dockerClient.createContainerCmd(image)
             .withName(containerName)

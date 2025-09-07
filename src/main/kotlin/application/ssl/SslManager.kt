@@ -16,7 +16,6 @@ import org.bouncycastle.openssl.PEMKeyPair
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter
-import org.bouncycastle.operator.ContentSigner
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import java.io.*
 import java.math.BigInteger
@@ -36,6 +35,10 @@ import java.util.*
 
 class SslManager {
     val sslDirectory = applicationDirectory.resolve("ssl").apply { mkdirs() }
+
+    init {
+        Security.addProvider(BouncyCastleProvider())
+    }
 
     /**
      * Loads a PrivateKey from a PEM file
@@ -93,7 +96,6 @@ class SslManager {
      * Generates or loads Root CA and key
      */
     fun getRootCaCertificateAndKey(): Pair<X509Certificate, PrivateKey> {
-        Security.addProvider(BouncyCastleProvider())
         val certFile = sslDirectory.resolve("root-ca.crt")
         val keyFile = sslDirectory.resolve("root-ca.key")
 
@@ -129,6 +131,14 @@ class SslManager {
 
             writePem(certFile, rootCertificate)
             writePem(keyFile, keyPair.private)
+
+            // Create a PKCS12 bundle
+            val pkcs12File = sslDirectory.resolve("root-ca.p12")
+            val chain = arrayOf(rootCertificate)
+            val ks = KeyStore.getInstance("PKCS12")
+            ks.load(null, null)
+            ks.setKeyEntry("root", keyPair.private, "vocus".toCharArray(), chain)
+            FileOutputStream(pkcs12File).use { fos -> ks.store(fos, "vocus".toCharArray()) }
         }
 
         val privateKey = loadPrivateKey(keyFile)
@@ -140,92 +150,7 @@ class SslManager {
      * Creates or updates a certificate for the given domains
      */
     fun createOrUpdateCertificateForDomains(commonName: String, alternativeNames: Set<String>) {
-        require(commonName.isNotBlank() && !commonName.startsWith("*"))
-        require(alternativeNames.all { it.isNotBlank() })
-        Security.addProvider(BouncyCastleProvider())
-
-        val certDir = sslDirectory.resolve(commonName).apply { mkdirs() }
-        val certFile = certDir.resolve("cert.crt")
-        val keyFile = certDir.resolve("cert.key")
-        val fullchainFile = certDir.resolve("fullchain.pem")
-
-        val allDomains = setOf(commonName) + alternativeNames
-        var needsGeneration = true
-
-        if (certFile.exists() && keyFile.exists()) {
-            try {
-                val cert = loadCertificate(certFile)
-                val san = cert!!.subjectAlternativeNames?.mapNotNull { it[1]?.toString() }?.toSet() ?: emptySet()
-                if (allDomains.all { it in san }) needsGeneration = false
-            } catch (_: Exception) { needsGeneration = true }
-        }
-
-        if (needsGeneration) {
-            certFile.delete()
-            keyFile.delete()
-            val (rootCert, rootKey) = getRootCaCertificateAndKey()
-            val rootHolder = X509CertificateHolder(rootCert.encoded)
-
-            fun contentSignerFor(privateKey: PrivateKey): ContentSigner {
-                val sigAlg = when (privateKey.algorithm) {
-                    "RSA" -> "SHA256withRSA"
-                    "EC", "ECDSA" -> "SHA256withECDSA"
-                    else -> "SHA256withRSA"
-                }
-                return JcaContentSignerBuilder(sigAlg).setProvider(BouncyCastleProvider()).build(privateKey)
-            }
-
-            val kpg = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME)
-            kpg.initialize(2048)
-            val kp = kpg.generateKeyPair()
-
-            val subject = X500Name("CN=$commonName, O=VocusDev, C=DE")
-            val issuer = rootHolder.subject
-            val serial = BigInteger(64, SecureRandom())
-            val notBefore = Date.from(Instant.now().minus(1, ChronoUnit.DAYS))
-            val notAfter = Date.from(Instant.now().plus(365, ChronoUnit.DAYS))
-
-            val certBuilder = JcaX509v3CertificateBuilder(
-                issuer,
-                serial,
-                notBefore,
-                notAfter,
-                subject,
-                kp.public
-            )
-
-            certBuilder.addExtension(Extension.basicConstraints, true, BasicConstraints(false))
-            val keyUsage = KeyUsage(KeyUsage.digitalSignature or KeyUsage.keyEncipherment)
-            certBuilder.addExtension(Extension.keyUsage, true, keyUsage)
-            val eku = ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth)
-            certBuilder.addExtension(Extension.extendedKeyUsage, false, eku)
-
-            val names = mutableListOf<GeneralName>()
-            for (sd in allDomains) {
-                if (sd.isNotBlank()) {
-                    val domain = DomainBuilder(sd).buildAsSubdomain(skipIfSuffixAlreadyPresent = true, suffix = vocusDomain)
-                    names.add(GeneralName(GeneralName.dNSName, domain))
-                }
-            }
-            val san = GeneralNames(names.toTypedArray())
-            certBuilder.addExtension(Extension.subjectAlternativeName, false, san)
-
-            val signer: ContentSigner = contentSignerFor(rootKey)
-            val holder: X509CertificateHolder = certBuilder.build(signer)
-
-            writePem(certFile, holder)
-            val privateKeyInfo = PrivateKeyInfo.getInstance(kp.private.encoded)
-            writePem(keyFile, privateKeyInfo)
-
-            FileWriter(fullchainFile).use { fw ->
-                JcaPEMWriter(fw).use { pw ->
-                    pw.writeObject(holder)
-                    pw.writeObject(rootHolder)
-                }
-            }
-
-            verifyCertificateChain(fullchainFile.absolutePath, sslDirectory.resolve("root-ca.crt").absolutePath)
-        }
+        createCertificate(commonName, alternativeNames, sslDirectory.resolve(commonName).apply { mkdirs() })
     }
 
     /**
@@ -252,4 +177,99 @@ class SslManager {
             throw e
         }
     }
+
+    fun createCertificate(
+        commonName: String,
+        alternativeNames: Set<String> = emptySet(),
+        destinationDirectory: File
+    ): CreateCertificateResult {
+        destinationDirectory.mkdirs()
+
+        val keyFile = destinationDirectory.resolve("cert.key")
+        val certFile = destinationDirectory.resolve("cert.crt")
+        val fullchainFile = destinationDirectory.resolve("fullchain.pem")
+
+        run checkIfIsStillValid@{
+            if (keyFile.exists() && certFile.exists() && fullchainFile.exists()) {
+                val certificate = loadCertificate(certFile)!!
+                val isExpired = certificate.notAfter.before(Date())
+                if (isExpired) return@checkIfIsStillValid
+
+                val isForCommonName = certificate.subjectX500Principal.name.contains("CN=$commonName")
+                if (!isForCommonName) return@checkIfIsStillValid
+
+                val isForAlternativeNames = certificate.subjectAlternativeNames.orEmpty()
+                    .filter { it.size >= 2 && it[0] == 2 } // 2 = dNSName
+                    .map { it[1] as String }
+                    .toSet()
+                    .containsAll(alternativeNames.filter { it.isNotBlank() }.map {
+                        DomainBuilder(it).buildAsSubdomain(skipIfSuffixAlreadyPresent = true, suffix = vocusDomain)
+                    })
+                if (!isForAlternativeNames) return@checkIfIsStillValid
+
+                return CreateCertificateResult(false)
+            }
+        }
+
+        val (rootCert, rootKey) = getRootCaCertificateAndKey()
+        val rootHolder = X509CertificateHolder(rootCert.encoded)
+
+        val kpg = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME)
+        kpg.initialize(2048)
+        val kp = kpg.generateKeyPair()
+
+        val subject = X500Name("CN=$commonName, O=VocusDev, C=DE")
+        val issuer = rootHolder.subject
+        val serial = BigInteger(64, SecureRandom())
+        val notBefore = Date.from(Instant.now().minus(1, ChronoUnit.DAYS))
+        val notAfter = Date.from(Instant.now().plus(365, ChronoUnit.DAYS))
+
+        val certBuilder = JcaX509v3CertificateBuilder(
+            issuer,
+            serial,
+            notBefore,
+            notAfter,
+            subject,
+            kp.public
+        )
+
+        val names = mutableListOf<GeneralName>()
+        for (sd in alternativeNames) {
+            if (sd.isNotBlank()) {
+                val domain = DomainBuilder(sd).buildAsSubdomain(skipIfSuffixAlreadyPresent = true, suffix = vocusDomain)
+                names.add(GeneralName(GeneralName.dNSName, domain))
+            }
+        }
+
+        val san = GeneralNames(names.toTypedArray())
+        certBuilder.addExtension(Extension.subjectAlternativeName, false, san)
+
+        certBuilder.addExtension(Extension.basicConstraints, true, BasicConstraints(false))
+        val keyUsage = KeyUsage(KeyUsage.digitalSignature or KeyUsage.keyEncipherment)
+        certBuilder.addExtension(Extension.keyUsage, true, keyUsage)
+        val eku = ExtendedKeyUsage(KeyPurposeId.id_kp_clientAuth)
+        certBuilder.addExtension(Extension.extendedKeyUsage, false, eku)
+
+        val privateKeyInfo = PrivateKeyInfo.getInstance(kp.private.encoded)
+        writePem(keyFile, privateKeyInfo)
+        writePem(certFile, certBuilder.build(JcaContentSignerBuilder("SHA256withRSA").build(rootKey)))
+        writePem(fullchainFile, certBuilder.build(JcaContentSignerBuilder("SHA256withRSA").build(rootKey)))
+
+        verifyCertificateChain(fullchainFile.canonicalPath, sslDirectory.resolve("root-ca.crt").canonicalPath)
+
+        val pkcs12File = destinationDirectory.resolve("bundle.p12")
+        val cert = loadCertificate(destinationDirectory.resolve("cert.crt"))!!
+        val key = loadPrivateKey(destinationDirectory.resolve("cert.key"))
+        val chain = arrayOf(cert, rootCert)
+        val ks = KeyStore.getInstance("PKCS12")
+        ks.load(null, null)
+        ks.setKeyEntry(commonName, key, "vocus".toCharArray(), chain)
+        FileOutputStream(pkcs12File).use { fos -> ks.store(fos, "vocus".toCharArray()) }
+
+        return CreateCertificateResult(true)
+    }
 }
+
+data class CreateCertificateResult(
+    val created: Boolean,
+)

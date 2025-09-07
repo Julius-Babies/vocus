@@ -72,9 +72,9 @@ class TraefikService : AbstractDockerService(
 
         traefikStaticConfig.writeText(defaultConfigFile)
 
-        val staticConfigurationBinding = Bind.parse("${traefikStaticConfig.absolutePath}:/etc/traefik/traefik.yaml")
-        val dynamicConfigurationBinding = Bind.parse("${traefikDynamicConfig.absolutePath}:/etc/traefik/dynamic/")
-        val certificatesBinding = Bind.parse("${sslManager.sslDirectory.absolutePath}:/certificates:ro")
+        val staticConfigurationBinding = Bind.parse("${traefikStaticConfig.canonicalPath}:/etc/traefik/traefik.yaml")
+        val dynamicConfigurationBinding = Bind.parse("${traefikDynamicConfig.canonicalPath}:/etc/traefik/dynamic/")
+        val certificatesBinding = Bind.parse("${sslManager.sslDirectory.canonicalPath}:/certificates:ro")
         val dockerSocketBinding = Bind.parse("/var/run/docker.sock:/var/run/docker.sock")
 
         dockerClient
