@@ -40,7 +40,8 @@ fun initCompletion(
         if (reloadCommand != null) {
             println("Reloading shell...")
             println(gray("> ") + green(reloadCommand))
-            Runtime.getRuntime().exec(reloadCommand.split(" ").toTypedArray())
+            val process = ProcessBuilder(currentShell, reloadCommand).inheritIO().start()
+            process.waitFor()
         } else {
             println(yellow("Please reload your shell to use autocomplete"))
         }
