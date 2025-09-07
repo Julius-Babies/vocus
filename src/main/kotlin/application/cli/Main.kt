@@ -34,7 +34,7 @@ class Main : SuspendingCliktCommand(
 
         if (needsInstall() && !noInstall) {
             install()
-            initCompletion(this, shellChanged = true)
+            initCompletion(this)
             return
         }
 
