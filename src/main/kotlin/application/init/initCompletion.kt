@@ -2,6 +2,7 @@ package dev.babies.application.init
 
 import com.github.ajalt.clikt.core.BaseCliktCommand
 import dev.babies.application.cli.completion.updateAutocomplete
+import dev.babies.utils.dropUserHome
 import dev.babies.utils.gray
 import dev.babies.utils.green
 import dev.babies.utils.red
@@ -22,16 +23,16 @@ fun initCompletion(
         exitProcess(1)
     }
 
-    updateAutocomplete(
+    val updateResult = updateAutocomplete(
         baseCommand = baseCommand,
         currentShell = currentShell,
-    ).let {
+    ).also {
         hasChangedShellConfig = hasChangedShellConfig || it.hasChangedShellConfig
     }
 
     if (hasChangedShellConfig) {
         val reloadCommand = when (currentShell) {
-            "/bin/zsh" -> "-i"
+            "/bin/zsh" -> updateResult.file?.absolutePath?.dropUserHome() ?: "-i"
             "/bin/bash" -> "-i"
             else -> null
         }
