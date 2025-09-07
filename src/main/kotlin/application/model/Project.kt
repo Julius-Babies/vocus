@@ -9,7 +9,7 @@ class Project(
     var modules: List<Module>
 ) {
 
-    val projectDomain = DomainBuilder(name).buildAsSubdomain(
+    val projectDomain = DomainBuilder(DomainBuilder.nameToDomain(name)).buildAsSubdomain(
         skipIfSuffixAlreadyPresent = true,
         suffix = vocusDomain
     )
