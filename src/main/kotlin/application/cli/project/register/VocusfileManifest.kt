@@ -66,7 +66,8 @@ data class VocusfileManifest(
         data class DockerConfig(
             @SerialName("image") val image: String,
             @SerialName("exposed_ports") val exposedPorts: Map<Int, Int> = emptyMap(),
-            @SerialName("env") val env: Map<String, String> = emptyMap()
+            @SerialName("env") val env: Map<String, String> = emptyMap(),
+            @SerialName("mtls") val mTls: Boolean = false,
         )
     }
 }

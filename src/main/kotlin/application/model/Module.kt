@@ -1,6 +1,8 @@
 package dev.babies.application.model
 
 import com.github.dockerjava.api.DockerClient
+import com.github.dockerjava.api.model.Bind
+import com.github.dockerjava.api.model.Binds
 import com.github.dockerjava.api.model.Container
 import com.github.dockerjava.api.model.ExposedPort
 import com.github.dockerjava.api.model.HostConfig
@@ -15,8 +17,10 @@ import dev.babies.application.os.host.DomainBuilder
 import dev.babies.application.os.host.vocusDomain
 import dev.babies.application.reverseproxy.RouterDestination
 import dev.babies.application.reverseproxy.TraefikService
+import dev.babies.application.ssl.SslManager
 import dev.babies.utils.REPLACE_LINE
 import dev.babies.utils.blue
+import dev.babies.utils.docker.getBinds
 import dev.babies.utils.docker.getContainerByName
 import dev.babies.utils.docker.getEnvironmentVariables
 import dev.babies.utils.docker.getExposedPorts
@@ -34,6 +38,8 @@ class Module(
     val routes: List<ProjectConfig.Module.Route>,
     private var _state: State
 ): KoinComponent {
+
+    private val sslManager by inject<SslManager>()
 
     val state: State
         get() = _state
@@ -83,7 +89,8 @@ class Module(
                                 protocol = dev.babies.utils.docker.ExposedPort.Protocol.TCP
                             )
                         },
-                        env = moduleDockerConfig.env
+                        env = moduleDockerConfig.env,
+                        useMtls = moduleDockerConfig.mTls,
                     )
                 },
                 routes = module.routes,
@@ -120,11 +127,26 @@ class Module(
             dockerClient.prepareImage(dockerConfiguration.image)
             val existingContainer = getDockerContainer()
             var recreate = false
+
+            val desiredBinds = setOfNotNull(
+                if (dockerConfiguration.useMtls) dev.babies.utils.docker.Bind(
+                    hostPath = sslManager.sslDirectory.resolve("root-ca.crt").canonicalFile,
+                    containerPath = "/mTLS/root-ca.crt"
+                ) else null,
+                if (dockerConfiguration.useMtls) dev.babies.utils.docker.Bind(
+                    hostPath = sslManager.sslDirectory.resolve("service").resolve("${DomainBuilder.nameToDomain(project.name)}.${DomainBuilder.nameToDomain(this.name)}").resolve("bundle.p12").canonicalFile,
+                    containerPath = "/mTLS/service.p12"
+                ) else null
+            )
+
             if (existingContainer == null) recreate = true
-            else {
-                if (existingContainer.image != dockerConfiguration.image) recreate = true
-                if (!existingContainer.getExposedPorts().matches(dockerConfiguration.exposedPorts)) recreate = true
-                if (!existingContainer.getEnvironmentVariables().matches(dockerConfiguration.env)) recreate = true
+            else dockerConfiguration.let {
+                recreate = true
+                if (existingContainer.image != dockerConfiguration.image) return@let
+                if (!existingContainer.getExposedPorts().matches(dockerConfiguration.exposedPorts)) return@let
+                if (!dockerConfiguration.env.matches(existingContainer.getEnvironmentVariables())) return@let
+                if (existingContainer.getBinds() != desiredBinds) return@let
+                recreate = false
             }
 
             if (recreate) {
@@ -149,6 +171,10 @@ class Module(
                     ports.bind(exposedPorts.first { it.port == exposed.containerPort }, Ports.Binding.bindPort(exposed.hostPort))
                 }
 
+                val binds = Binds(*desiredBinds.map {
+                    Bind.parse("${it.hostPath.canonicalPath}:${it.containerPath}")
+                }.toTypedArray())
+
                 dockerClient.createContainerCmd(dockerConfiguration.image)
                     .withName(dockerContainerName)
                     .withLabels(
@@ -158,6 +184,7 @@ class Module(
                         HostConfig()
                             .withNetworkMode(dockerNetwork.networkName)
                             .withPortBindings(ports)
+                            .withBinds(binds)
                     )
                     .withEnv(dockerConfiguration.env.map { (key, value) -> "$key=$value" })
                     .withExposedPorts(*exposedPorts)
@@ -213,7 +240,8 @@ class Module(
     class DockerConfiguration(
         val image: String,
         val exposedPorts: List<dev.babies.utils.docker.ExposedPort>,
-        val env: Map<String, String>
+        val env: Map<String, String>,
+        val useMtls: Boolean,
     )
 
     enum class State {

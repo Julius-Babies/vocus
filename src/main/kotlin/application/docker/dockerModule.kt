@@ -17,7 +17,7 @@ val dockerModule = module {
             getDockerClient("unix:///var/run/docker.sock")
         } catch (e: RuntimeException) {
             if (e.cause !is SocketException) throw e
-            val userSocket = "unix:///${System.getProperty("user.home")}/.docker/run/docker.sock"
+            val userSocket = "unix://${System.getProperty("user.home")}/.docker/run/docker.sock"
             println(yellow("Could not connect to docker socket. Using user socket at $userSocket as fallback."))
             getDockerClient(userSocket)
         }
