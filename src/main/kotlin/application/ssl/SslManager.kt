@@ -238,7 +238,10 @@ class SslManager {
         certBuilder.addExtension(Extension.basicConstraints, true, BasicConstraints(false))
         val keyUsage = KeyUsage(KeyUsage.digitalSignature or KeyUsage.keyEncipherment)
         certBuilder.addExtension(Extension.keyUsage, true, keyUsage)
-        val eku = ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth)
+        val eku = ExtendedKeyUsage(arrayOf(
+            KeyPurposeId.id_kp_serverAuth,
+            KeyPurposeId.id_kp_clientAuth
+        ))
         certBuilder.addExtension(Extension.extendedKeyUsage, false, eku)
 
         val names = mutableListOf(GeneralName(GeneralName.dNSName, commonName))
