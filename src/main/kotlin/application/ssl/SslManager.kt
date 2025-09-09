@@ -250,8 +250,15 @@ class SslManager {
 
         val privateKeyInfo = PrivateKeyInfo.getInstance(kp.private.encoded)
         writePem(keyFile, privateKeyInfo)
-        writePem(certFile, certBuilder.build(JcaContentSignerBuilder("SHA256withRSA").build(rootKey)))
-        writePem(fullchainFile, certBuilder.build(JcaContentSignerBuilder("SHA256withRSA").build(rootKey)))
+        val leafCert = certBuilder.build(JcaContentSignerBuilder("SHA256withRSA").build(rootKey))
+        writePem(certFile, leafCert)
+        // fullchain.pem: Leaf-Zertifikat + Root CA
+        FileWriter(fullchainFile).use { fw ->
+            JcaPEMWriter(fw).use { pw ->
+                pw.writeObject(leafCert)
+                pw.writeObject(rootCert)
+            }
+        }
 
         verifyCertificateChain(fullchainFile.canonicalPath, sslDirectory.resolve("root-ca.crt").canonicalPath)
 
