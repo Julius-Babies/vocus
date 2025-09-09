@@ -36,6 +36,8 @@ import java.util.*
 class SslManager {
     val sslDirectory = applicationDirectory.resolve("ssl").apply { mkdirs() }
 
+    val cnOrganisation = "VocusDev" + if (isDevelopment) " Dev" else ""
+
     init {
         Security.addProvider(BouncyCastleProvider())
     }
@@ -108,7 +110,7 @@ class SslManager {
             val endDate = Date(startDate.time + 10L * 365 * 24 * 60 * 60 * 1000)
 
             val cn = if (isDevelopment) "VocusRoot Dev" else "VocusRoot"
-            val distinguishedName = "CN=$cn, O=VocusDev, C=DE"
+            val distinguishedName = "CN=$cn, O=$cnOrganisation, C=DE"
             val x500Name = X500Name(distinguishedName)
             val serialNumber = BigInteger.valueOf(System.currentTimeMillis())
 
@@ -218,7 +220,7 @@ class SslManager {
         kpg.initialize(2048)
         val kp = kpg.generateKeyPair()
 
-        val subject = X500Name("CN=$commonName, O=VocusDev, C=DE")
+        val subject = X500Name("CN=$commonName, O=$cnOrganisation, C=DE")
         val issuer = rootHolder.subject
         val serial = BigInteger(64, SecureRandom())
         val notBefore = Date.from(Instant.now().minus(1, ChronoUnit.DAYS))
@@ -239,7 +241,7 @@ class SslManager {
         val eku = ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth)
         certBuilder.addExtension(Extension.extendedKeyUsage, false, eku)
 
-        val names = mutableListOf<GeneralName>()
+        val names = mutableListOf(GeneralName(GeneralName.dNSName, commonName))
         for (sd in alternativeNames) {
             if (sd.isNotBlank()) {
                 names.add(GeneralName(GeneralName.dNSName, sd))
