@@ -113,7 +113,7 @@ class Rabbit4 : AbstractRabbitInstance(
             name = "rabbitmq-management",
             file = traefikRabbitMqManagementRouterFile,
             host = domain.toString(),
-            routerDestination = RouterDestination.ContainerPort(containerName, 15672)
+            routerDestination = RouterDestination.ContainerPort(containerName, 15672, false)
         )
         if (!dockerClient.isContainerRunning(containerName)) {
             dockerClient.startContainerCmd(containerName).exec()

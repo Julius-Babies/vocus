@@ -1,0 +1,14 @@
+tcp:
+  routers:
+    NAME-service:
+      rule: HostSNI(`HOST`)
+      tls:
+        passthrough: true
+      entryPoints:
+        - "websecure"
+      service: NAME-service-svc
+  services:
+    NAME-service-svc:
+      loadBalancer:
+        servers:
+          - address: DESTINATION_HOST:PORT

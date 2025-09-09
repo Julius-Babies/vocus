@@ -233,22 +233,20 @@ class SslManager {
             kp.public
         )
 
-        val names = mutableListOf<GeneralName>()
-        for (sd in alternativeNames) {
-            if (sd.isNotBlank()) {
-                val domain = DomainBuilder(sd).buildAsSubdomain(skipIfSuffixAlreadyPresent = true, suffix = vocusDomain)
-                names.add(GeneralName(GeneralName.dNSName, domain))
-            }
-        }
-
-        val san = GeneralNames(names.toTypedArray())
-        certBuilder.addExtension(Extension.subjectAlternativeName, false, san)
-
         certBuilder.addExtension(Extension.basicConstraints, true, BasicConstraints(false))
         val keyUsage = KeyUsage(KeyUsage.digitalSignature or KeyUsage.keyEncipherment)
         certBuilder.addExtension(Extension.keyUsage, true, keyUsage)
-        val eku = ExtendedKeyUsage(KeyPurposeId.id_kp_clientAuth)
+        val eku = ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth)
         certBuilder.addExtension(Extension.extendedKeyUsage, false, eku)
+
+        val names = mutableListOf<GeneralName>()
+        for (sd in alternativeNames) {
+            if (sd.isNotBlank()) {
+                names.add(GeneralName(GeneralName.dNSName, sd))
+            }
+        }
+        val san = GeneralNames(names.toTypedArray())
+        certBuilder.addExtension(Extension.subjectAlternativeName, false, san)
 
         val privateKeyInfo = PrivateKeyInfo.getInstance(kp.private.encoded)
         writePem(keyFile, privateKeyInfo)

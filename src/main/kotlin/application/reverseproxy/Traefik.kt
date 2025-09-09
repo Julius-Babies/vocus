@@ -15,6 +15,7 @@ import dev.babies.isDevelopment
 import dev.babies.utils.docker.doesContainerExist
 import dev.babies.utils.docker.isContainerRunning
 import dev.babies.utils.docker.prepareImage
+import dev.babies.utils.yellow
 import kotlinx.serialization.encodeToString
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -145,26 +146,49 @@ class TraefikService : AbstractDockerService(
         pathPrefixes: Set<String> = setOf("/"),
         routerDestination: RouterDestination
     ) {
+        if (routerDestination.mTls && (pathPrefixes-"/").isNotEmpty()) {
+            println(yellow("Path prefix in combination with mTLS used, this is not possible. Prefixes will be ignored."))
+        }
         val content = when (routerDestination) {
             is RouterDestination.HostPort -> {
-                {}::class.java.classLoader.getResourceAsStream("traefik/host-port-service.yaml")
-                    ?.bufferedReader(Charsets.UTF_8)
-                    ?.readText()!!
-                    .replace("DESTINATION_HOST", "host.docker.internal")
-                    .replace("NAME", name)
-                    .replace("HOST", host)
-                    .replace("PATHPREFIX", pathPrefixes.joinToString(" || ") { "PathPrefix(`$it`)" })
-                    .replace("PORT", routerDestination.port.toString())
+                if (routerDestination.mTls) {
+                    {}::class.java.classLoader.getResourceAsStream("traefik/tcp-service.yaml")
+                        ?.bufferedReader(Charsets.UTF_8)
+                        ?.readText()!!
+                        .replace("DESTINATION_HOST", "host.docker.internal")
+                        .replace("NAME", name)
+                        .replace("HOST", host)
+                        .replace("PORT", routerDestination.port.toString())
+                } else {
+                    {}::class.java.classLoader.getResourceAsStream("traefik/host-port-service.yaml")
+                        ?.bufferedReader(Charsets.UTF_8)
+                        ?.readText()!!
+                        .replace("DESTINATION_HOST", "host.docker.internal")
+                        .replace("NAME", name)
+                        .replace("HOST", host)
+                        .replace("PATHPREFIX", pathPrefixes.joinToString(" || ") { "PathPrefix(`$it`)" })
+                        .replace("PORT", routerDestination.port.toString())
+                }
             }
             is RouterDestination.ContainerPort -> {
-                {}::class.java.classLoader.getResourceAsStream("traefik/host-port-service.yaml")
-                    ?.bufferedReader(Charsets.UTF_8)
-                    ?.readText()!!
-                    .replace("DESTINATION_HOST", routerDestination.containerName)
-                    .replace("NAME", name)
-                    .replace("HOST", host)
-                    .replace("PATHPREFIX", pathPrefixes.joinToString(" || ") { "PathPrefix(`$it`)" })
-                    .replace("PORT", routerDestination.port.toString())
+                if (routerDestination.mTls) {
+                    {}::class.java.classLoader.getResourceAsStream("traefik/tcp-service.yaml")
+                        ?.bufferedReader(Charsets.UTF_8)
+                        ?.readText()!!
+                        .replace("DESTINATION_HOST", routerDestination.containerName)
+                        .replace("NAME", name)
+                        .replace("HOST", host)
+                        .replace("PORT", routerDestination.port.toString())
+                } else {
+                    {}::class.java.classLoader.getResourceAsStream("traefik/host-port-service.yaml")
+                        ?.bufferedReader(Charsets.UTF_8)
+                        ?.readText()!!
+                        .replace("DESTINATION_HOST", routerDestination.containerName)
+                        .replace("NAME", name)
+                        .replace("HOST", host)
+                        .replace("PATHPREFIX", pathPrefixes.joinToString(" || ") { "PathPrefix(`$it`)" })
+                        .replace("PORT", routerDestination.port.toString())
+                }
             }
         }
         file.writeText(content)
@@ -172,6 +196,7 @@ class TraefikService : AbstractDockerService(
 }
 
 sealed class RouterDestination {
-    data class HostPort(val port: Int): RouterDestination()
-    data class ContainerPort(val containerName: String, val port: Int): RouterDestination()
+    abstract val mTls: Boolean
+    data class HostPort(val port: Int, override val mTls: Boolean): RouterDestination()
+    data class ContainerPort(val containerName: String, val port: Int, override val mTls: Boolean): RouterDestination()
 }

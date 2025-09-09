@@ -63,7 +63,7 @@ fun DockerClient.prepareImage(image: String) {
         exitProcess(1)
     } catch (t: Throwable) {
         if (hasLocal) {
-            print(REPLACE_LINE + yellow("Could not pull image '$image' (likely offline). Using locally available image."))
+            println(REPLACE_LINE + yellow("Could not pull image '$image' (likely offline). Using locally available image."))
             return
         } else {
             throw t

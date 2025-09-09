@@ -60,13 +60,13 @@ data class ProjectConfig(
         @SerialName("docker_config") val dockerConfig: DockerConfig?,
         @SerialName("routes") val routes: List<Route> = emptyList(),
         @SerialName("current_state") val currentState: SetStateCommand.State,
+        @SerialName("mtls") val mTls: Boolean = false
     ) {
         @Serializable
         data class DockerConfig(
             @SerialName("image") val image: String,
             @SerialName("exposed_ports") val exposedPorts: Map<Int, Int> = emptyMap(),
-            @SerialName("env") val env: Map<String, String> = emptyMap(),
-            @SerialName("mtls") val mTls: Boolean = false
+            @SerialName("env") val env: Map<String, String> = emptyMap()
         )
 
         @Serializable

@@ -34,6 +34,7 @@ import java.io.File
 class Module(
     val name: String,
     val project: Project,
+    val useMtls: Boolean,
     val dockerConfiguration: DockerConfiguration?,
     val routes: List<ProjectConfig.Module.Route>,
     private var _state: State
@@ -90,9 +91,9 @@ class Module(
                             )
                         },
                         env = moduleDockerConfig.env,
-                        useMtls = moduleDockerConfig.mTls,
                     )
                 },
+                useMtls = module.mTls,
                 routes = module.routes,
                 _state = when (module.currentState) {
                     SetStateCommand.State.Off -> State.Off
@@ -129,15 +130,15 @@ class Module(
             var recreate = false
 
             val desiredBinds = setOfNotNull(
-                if (dockerConfiguration.useMtls) dev.babies.utils.docker.Bind(
+                if (this.useMtls) dev.babies.utils.docker.Bind(
                     hostPath = sslManager.sslDirectory.resolve("root-ca.crt").canonicalFile,
                     containerPath = "/mTLS/root-ca.crt"
                 ) else null,
-                if (dockerConfiguration.useMtls) dev.babies.utils.docker.Bind(
+                if (this.useMtls) dev.babies.utils.docker.Bind(
                     hostPath = sslManager.sslDirectory.resolve("service").resolve("${DomainBuilder.nameToDomain(project.name)}.${DomainBuilder.nameToDomain(this.name)}").resolve("bundle.p12").canonicalFile,
                     containerPath = "/mTLS/service_client.p12"
                 ) else null,
-                if (dockerConfiguration.useMtls) dev.babies.utils.docker.Bind(
+                if (this.useMtls) dev.babies.utils.docker.Bind(
                     hostPath = sslManager.sslDirectory.resolve(project.projectDomain).resolve("bundle.p12").canonicalFile,
                     containerPath = "/mTLS/service_host.p12"
                 ) else null
@@ -228,8 +229,8 @@ class Module(
                 },
                 pathPrefixes = route.pathPrefixes,
                 routerDestination = when (_state) {
-                    State.Docker -> RouterDestination.ContainerPort(dockerContainerName, route.ports.docker!!)
-                    State.Local -> RouterDestination.HostPort(route.ports.host!!)
+                    State.Docker -> RouterDestination.ContainerPort(dockerContainerName, route.ports.docker!!, this.useMtls)
+                    State.Local -> RouterDestination.HostPort(route.ports.host!!, this.useMtls)
                     State.Off -> return@forEachRoute
                 }
             )
@@ -245,7 +246,6 @@ class Module(
         val image: String,
         val exposedPorts: List<dev.babies.utils.docker.ExposedPort>,
         val env: Map<String, String>,
-        val useMtls: Boolean,
     )
 
     enum class State {

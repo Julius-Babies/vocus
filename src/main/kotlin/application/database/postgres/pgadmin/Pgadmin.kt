@@ -91,7 +91,7 @@ class Pgadmin : AbstractDockerService(
                 .addSubdomain("pgadmin")
                 .toString(),
             file = traefikConfig,
-            routerDestination = RouterDestination.ContainerPort(containerName, 80)
+            routerDestination = RouterDestination.ContainerPort(containerName, 80, false)
         )
     }
 

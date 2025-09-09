@@ -98,10 +98,10 @@ class RegisterCommand : SuspendingCliktCommand("register") {
                                     if (image.contains(":")) image else "$image:latest"
                                 },
                                 exposedPorts = dockerConfig.exposedPorts,
-                                env = dockerConfig.env,
-                                mTls = dockerConfig.mTls
+                                env = dockerConfig.env
                             )
                         },
+                        mTls = module.mTls,
                         routes = module.routes.map { route ->
                             ProjectConfig.Module.Route(
                                 subdomain = route.domain,
