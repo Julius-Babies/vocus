@@ -135,7 +135,11 @@ class Module(
                 ) else null,
                 if (dockerConfiguration.useMtls) dev.babies.utils.docker.Bind(
                     hostPath = sslManager.sslDirectory.resolve("service").resolve("${DomainBuilder.nameToDomain(project.name)}.${DomainBuilder.nameToDomain(this.name)}").resolve("bundle.p12").canonicalFile,
-                    containerPath = "/mTLS/service.p12"
+                    containerPath = "/mTLS/service_client.p12"
+                ) else null,
+                if (dockerConfiguration.useMtls) dev.babies.utils.docker.Bind(
+                    hostPath = sslManager.sslDirectory.resolve(project.projectDomain).resolve("bundle.p12").canonicalFile,
+                    containerPath = "/mTLS/service_host.p12"
                 ) else null
             )
 
