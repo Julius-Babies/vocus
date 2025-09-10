@@ -2,6 +2,7 @@ package dev.babies.application.init
 
 import com.sun.jna.Platform
 import dev.babies.application.config.getConfig
+import dev.babies.application.model.Project
 import dev.babies.application.os.host.DomainBuilder
 import dev.babies.application.os.host.vocusDomain
 import dev.babies.application.ssl.SslManager
@@ -24,14 +25,16 @@ fun initSsl() {
         InitSsl.sslManager.createOrUpdateCertificateForDomains(domain, additionalDomains)
     }
 
-    getConfig().projects.forEach { projectConfig ->
+    getConfig().projects.map { Project.fromConfig(it) }.forEach { projectConfig ->
         projectConfig.modules.forEach { moduleConfig ->
             InitSsl.sslManager.createCertificate(
-                commonName = projectConfig.projectDomain.addSubdomain(DomainBuilder.nameToDomain(moduleConfig.key)).buildAsSubdomain(skipIfSuffixAlreadyPresent = true, suffix = vocusDomain),
-                alternativeNames = emptySet(),
+                commonName = DomainBuilder(projectConfig.projectDomain).addSubdomain(moduleConfig.name).toString(),
+                alternativeNames = moduleConfig.routes.filter { it.subdomain != null }.map {
+                    DomainBuilder(projectConfig.projectDomain).addSubdomain(it.subdomain!!).buildAsSubdomain(suffix = vocusDomain)
+                }.toSet(),
                 destinationDirectory = InitSsl.sslManager.sslDirectory
                     .resolve("service")
-                    .resolve("${DomainBuilder.nameToDomain(projectConfig.name)}.${DomainBuilder.nameToDomain(moduleConfig.key)}")
+                    .resolve("${DomainBuilder.nameToDomain(projectConfig.name)}.${DomainBuilder.nameToDomain(moduleConfig.name)}")
             )
         }
     }
