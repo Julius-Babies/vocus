@@ -1,6 +1,8 @@
 package dev.babies.application.docker
 
 import com.github.dockerjava.api.DockerClient
+import com.github.dockerjava.api.async.ResultCallback
+import com.github.dockerjava.api.model.Frame
 import dev.babies.utils.docker.isContainerRunning
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -42,5 +44,25 @@ abstract class AbstractDockerService(
 
     suspend fun isCreated(): Boolean {
         return getState() == State.Created
+    }
+
+    suspend fun exec(command: String) {
+        withContext(Dispatchers.IO) {
+            val cmd = dockerClient.execCreateCmd(containerName)
+                .withAttachStdout(true)
+                .withAttachStderr(true)
+                .withCmd("sh", "-c", command)
+                .exec()
+
+            dockerClient
+                .execStartCmd(cmd.id)
+                .exec(object : ResultCallback.Adapter<Frame>() {
+                    override fun onNext(frame: Frame) {
+                        val payload = String(frame.payload)
+                        println(payload)
+                    }
+                })
+                .awaitCompletion()
+        }
     }
 }

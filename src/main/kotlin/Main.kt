@@ -9,6 +9,7 @@ import dev.babies.application.database.rabbitmq.r4.rabbit4Module
 import dev.babies.application.dns.dnsModule
 import dev.babies.application.docker.dockerModule
 import dev.babies.application.docker.network.dockerNetworkModule
+import dev.babies.application.etcd.etcdModule
 import dev.babies.application.init.initCompletion
 import dev.babies.application.os.host.hostsManagerModule
 import dev.babies.application.os.sudoManagerModule
@@ -37,7 +38,8 @@ fun main(args: Array<String>) {
                 mongo8Module,
                 rabbit4Module,
                 pgadminModule,
-                dnsModule
+                dnsModule,
+                etcdModule
             )
 
             Main()
