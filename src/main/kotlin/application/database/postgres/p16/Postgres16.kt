@@ -4,8 +4,6 @@ import com.github.dockerjava.api.model.Bind
 import com.github.dockerjava.api.model.ExposedPort
 import com.github.dockerjava.api.model.HostConfig
 import com.github.dockerjava.api.model.Ports
-import dev.babies.application.config.ApplicationConfig
-import dev.babies.application.config.updateConfig
 import dev.babies.application.database.postgres.AbstractPostgresDatabase
 import dev.babies.application.docker.COMPOSE_PROJECT_PREFIX
 import dev.babies.isDevelopment
@@ -121,15 +119,6 @@ class Postgres16(
 
         waitUntil("Postgres $containerName is ready") {
             dockerClient.runCommand(containerName, listOf("pg_isready", "-U", DATABASE_USER)).exitCode == 0
-        }
-
-        val databases = getDatabases() - "postgres"
-        updateConfig { config ->
-            config.databases.postgres16 = (config.databases.postgres16 ?: ApplicationConfig.Database.Postgres16()).apply {
-                this.databases = databases
-            }
-
-            config
         }
     }
 

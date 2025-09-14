@@ -11,7 +11,7 @@ class Postgres16Command: SuspendingCliktCommand("postgres16"), KoinComponent {
 
     init {
         subcommands(
-            getConfig().databases.postgres16?.databases.orEmpty().map { databaseName ->
+            getConfig().projects.flatMap { it.infrastructure.databases?.postgres16?.databases.orEmpty() }.map { databaseName ->
                 PostgresDatabaseCommand(databaseName)
             }
         )
