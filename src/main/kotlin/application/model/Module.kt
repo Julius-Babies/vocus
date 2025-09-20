@@ -26,10 +26,12 @@ import dev.babies.utils.docker.getEnvironmentVariables
 import dev.babies.utils.docker.getExposedPorts
 import dev.babies.utils.docker.matches
 import dev.babies.utils.docker.prepareImage
+import dev.babies.utils.red
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import java.io.File
+import kotlin.system.exitProcess
 
 class Module(
     val name: String,
@@ -229,7 +231,17 @@ class Module(
                 },
                 pathPrefixes = route.pathPrefixes,
                 routerDestination = when (_state) {
-                    State.Docker -> RouterDestination.ContainerPort(dockerContainerName, route.ports.docker!!, this.useMtls)
+                    State.Docker -> {
+                        if (route.ports.docker == null) {
+                            println(red("Fatal: Missing docker port for route ${route.subdomain.let { 
+                                DomainBuilder(vocusDomain).apply { 
+                                    if (it != null) addSubdomain(it)
+                                }.toString()
+                            }} (module ${this.project.name}/${this.name})"))
+                            exitProcess(1)
+                        }
+                        RouterDestination.ContainerPort(dockerContainerName, route.ports.docker, this.useMtls)
+                    }
                     State.Local -> RouterDestination.HostPort(route.ports.host!!, this.useMtls)
                     State.Off -> return@forEachRoute
                 }
