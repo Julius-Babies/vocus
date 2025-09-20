@@ -242,7 +242,17 @@ class Module(
                         }
                         RouterDestination.ContainerPort(dockerContainerName, route.ports.docker, this.useMtls)
                     }
-                    State.Local -> RouterDestination.HostPort(route.ports.host!!, this.useMtls)
+                    State.Local -> {
+                        if (route.ports.host == null) {
+                            println(red("Fatal: Missing host port for route ${route.subdomain.let { 
+                                DomainBuilder(vocusDomain).apply { 
+                                    if (it != null) addSubdomain(it)
+                                }.toString()
+                            }} (module ${this.project.name}/${this.name})"))
+                            exitProcess(1)
+                        }
+                        RouterDestination.HostPort(route.ports.host, this.useMtls)
+                    }
                     State.Off -> return@forEachRoute
                 }
             )
