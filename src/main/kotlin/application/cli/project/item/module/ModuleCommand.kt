@@ -31,9 +31,11 @@ class ModuleCommand(
                     append(
                         module.routes
                             .map { route ->
-                                DomainBuilder(vocusDomain).let {
-                                    if (route.subdomain != null) it.addSubdomain(route.subdomain) else it
-                                }.toString()
+                                DomainBuilder(vocusDomain)
+                                    .addSubdomain(DomainBuilder.nameToDomain(module.project.name))
+                                    .let {
+                                        if (route.subdomain != null) it.addSubdomain(route.subdomain) else it
+                                    }.toString()
                             }
                             .sorted()
                             .distinct()
