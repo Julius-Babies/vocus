@@ -5,6 +5,8 @@ import com.github.ajalt.clikt.core.subcommands
 import dev.babies.application.cli.project.ProjectCommandContext
 import dev.babies.application.cli.project.item.module.item.ModuleItemCommand
 import dev.babies.application.model.Module
+import dev.babies.application.os.host.DomainBuilder
+import dev.babies.application.os.host.vocusDomain
 import dev.babies.utils.aqua
 import dev.babies.utils.gray
 import dev.babies.utils.green
@@ -20,12 +22,33 @@ class ModuleCommand(
         if (currentContext.invokedSubcommand != null) return
         println("Modules for ${project.name}")
         project.modules.forEach { module ->
-            print("- ${aqua(module.name)} ")
-            when (module.state) {
-                Module.State.Off -> println(gray("disabled"))
-                Module.State.Docker -> println(green("Docker"))
-                Module.State.Local -> println(green("Local"))
-            }
+            println(buildString {
+                append("- ")
+                append(aqua(module.name))
+                append(" ")
+                if (module.routes.isNotEmpty()) {
+                    append("(")
+                    append(
+                        module.routes
+                            .map { route ->
+                                DomainBuilder(vocusDomain).let {
+                                    if (route.subdomain != null) it.addSubdomain(route.subdomain) else it
+                                }.toString()
+                            }
+                            .sorted()
+                            .distinct()
+                            .joinToString()
+                    )
+                    append(") ")
+                }
+                append(
+                    when (module.state) {
+                        Module.State.Off -> gray("Disabled")
+                        Module.State.Docker -> green("Docker")
+                        Module.State.Local -> green("Local")
+                    }
+                )
+            })
         }
     }
 
