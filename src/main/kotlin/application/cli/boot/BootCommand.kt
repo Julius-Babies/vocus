@@ -3,7 +3,6 @@ package dev.babies.application.cli.boot
 import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.core.Context
 import dev.babies.application.init.initDns
-import dev.babies.application.init.initEtcd
 import dev.babies.application.init.initHosts
 import dev.babies.application.init.initMongo8
 import dev.babies.application.init.initPgAdmin
@@ -28,6 +27,5 @@ class BootCommand : SuspendingCliktCommand("boot"), KoinComponent {
         initPgAdmin()
         initMongo8()
         initRabbit4()
-        initEtcd()
     }
 }

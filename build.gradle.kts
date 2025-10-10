@@ -43,6 +43,10 @@ tasks.test {
 }
 kotlin {
     jvmToolchain(23)
+
+    compilerOptions {
+        optIn.add("kotlin.uuid.ExperimentalUuidApi")
+    }
 }
 
 application {

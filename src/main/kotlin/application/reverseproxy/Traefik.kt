@@ -5,16 +5,21 @@ import com.github.dockerjava.api.model.Bind
 import com.github.dockerjava.api.model.ExposedPort
 import com.github.dockerjava.api.model.HostConfig
 import com.github.dockerjava.api.model.Ports
+import dev.babies.application.config.getConfig
 import dev.babies.application.docker.AbstractDockerService
 import dev.babies.application.docker.COMPOSE_PROJECT_PREFIX
 import dev.babies.application.docker.network.DockerNetwork
 import dev.babies.application.docker.network.VOCUS_DOCKER_NETWORK_DI_KEY
+import dev.babies.application.init.vocusHosts
+import dev.babies.application.os.host.DomainBuilder
+import dev.babies.application.os.host.vocusDomain
 import dev.babies.application.ssl.SslManager
 import dev.babies.applicationDirectory
 import dev.babies.isDevelopment
 import dev.babies.utils.docker.doesContainerExist
 import dev.babies.utils.docker.isContainerRunning
 import dev.babies.utils.docker.prepareImage
+import dev.babies.utils.docker.withHostAliases
 import dev.babies.utils.yellow
 import kotlinx.serialization.encodeToString
 import org.koin.core.component.KoinComponent
@@ -78,6 +83,12 @@ class TraefikService : AbstractDockerService(
         val certificatesBinding = Bind.parse("${sslManager.sslDirectory.canonicalPath}:/certificates:ro")
         val dockerSocketBinding = Bind.parse("/var/run/docker.sock:/var/run/docker.sock")
 
+        val hostEntries = getConfig().projects
+            .flatMap { projectConfig -> projectConfig.getAllProjectDomains() }
+            .map { DomainBuilder(it).buildAsSubdomain(suffix = vocusDomain, skipIfSuffixAlreadyPresent = true) }
+            .plus(vocusHosts)
+            .toSet()
+
         dockerClient
             .createContainerCmd(image)
             .withName(containerName)
@@ -86,6 +97,7 @@ class TraefikService : AbstractDockerService(
                     .withPortBindings(portBindings)
                     .withBinds(staticConfigurationBinding, dynamicConfigurationBinding, certificatesBinding, dockerSocketBinding)
                     .withNetworkMode(dockerNetwork.networkName)
+                    .withHostAliases(hostEntries)
             )
             .withLabels(
                 mapOf("com.docker.compose.project" to COMPOSE_PROJECT_PREFIX)

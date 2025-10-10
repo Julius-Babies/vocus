@@ -8,7 +8,6 @@ import dev.babies.application.database.postgres.p16.Postgres16
 import dev.babies.application.database.postgres.pgadmin.Pgadmin
 import dev.babies.application.database.rabbitmq.r4.Rabbit4
 import dev.babies.application.dns.AndroidDnsService
-import dev.babies.application.etcd.EtcdService
 import dev.babies.application.model.Project
 import dev.babies.application.reverseproxy.TraefikService
 import dev.babies.utils.REPLACE_LINE
@@ -25,7 +24,6 @@ class PoweroffCommand : SuspendingCliktCommand("poweroff"), KoinComponent {
     private val traefikService by inject<TraefikService>()
     private val mongo8 by inject<Mongo8Database>()
     private val rabbit4 by inject<Rabbit4>()
-    private val etcdService by inject<EtcdService>()
 
     override fun helpEpilog(context: Context): String {
         return "Stop all services including those that are used by vocus."
@@ -35,7 +33,7 @@ class PoweroffCommand : SuspendingCliktCommand("poweroff"), KoinComponent {
         println(green("Powering off vocus...") + " Please wait")
         println()
 
-        val services = listOf(dnsService, pgadmin, postgres16, traefikService, mongo8, rabbit4, etcdService)
+        val services = listOf(dnsService, pgadmin, postgres16, traefikService, mongo8, rabbit4)
 
         getConfig().projects
             .map { project -> Project.fromConfig(project) }

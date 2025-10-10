@@ -1,18 +1,17 @@
 package dev.babies.application.model
 
 import com.github.dockerjava.api.DockerClient
+import com.github.dockerjava.api.model.*
 import com.github.dockerjava.api.model.Bind
-import com.github.dockerjava.api.model.Binds
-import com.github.dockerjava.api.model.Container
 import com.github.dockerjava.api.model.ExposedPort
-import com.github.dockerjava.api.model.HostConfig
-import com.github.dockerjava.api.model.Ports
 import dev.babies.application.cli.project.item.module.item.SetStateCommand
 import dev.babies.application.config.ProjectConfig
+import dev.babies.application.config.getConfig
 import dev.babies.application.config.updateConfig
 import dev.babies.application.docker.COMPOSE_PROJECT_PREFIX
 import dev.babies.application.docker.network.DockerNetwork
 import dev.babies.application.docker.network.VOCUS_DOCKER_NETWORK_DI_KEY
+import dev.babies.application.init.vocusHosts
 import dev.babies.application.os.host.DomainBuilder
 import dev.babies.application.os.host.vocusDomain
 import dev.babies.application.reverseproxy.RouterDestination
@@ -20,12 +19,7 @@ import dev.babies.application.reverseproxy.TraefikService
 import dev.babies.application.ssl.SslManager
 import dev.babies.utils.REPLACE_LINE
 import dev.babies.utils.blue
-import dev.babies.utils.docker.getBinds
-import dev.babies.utils.docker.getContainerByName
-import dev.babies.utils.docker.getEnvironmentVariables
-import dev.babies.utils.docker.getExposedPorts
-import dev.babies.utils.docker.matches
-import dev.babies.utils.docker.prepareImage
+import dev.babies.utils.docker.*
 import dev.babies.utils.red
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -182,6 +176,12 @@ class Module(
                     Bind.parse("${it.hostPath.canonicalPath}:${it.containerPath}")
                 }.toTypedArray())
 
+                val hostEntries = getConfig().projects
+                    .flatMap { projectConfig -> projectConfig.getAllProjectDomains() }
+                    .map { DomainBuilder(it).buildAsSubdomain(suffix = vocusDomain, skipIfSuffixAlreadyPresent = true) }
+                    .plus(vocusHosts)
+                    .toSet()
+
                 dockerClient.createContainerCmd(dockerConfiguration.image)
                     .withName(dockerContainerName)
                     .withLabels(
@@ -192,6 +192,7 @@ class Module(
                             .withNetworkMode(dockerNetwork.networkName)
                             .withPortBindings(ports)
                             .withBinds(binds)
+                            .withHostAliases(hostEntries)
                     )
                     .withEnv(dockerConfiguration.env.map { (key, value) -> "$key=$value" })
                     .withExposedPorts(*exposedPorts)
@@ -199,6 +200,7 @@ class Module(
 
                 print("\r⧖ Starting new Docker container for module $consoleContainerName")
                 dockerClient.startContainerCmd(dockerContainerName).exec()
+
                 println("$REPLACE_LINE✓ Started new Docker container for module $consoleContainerName")
             }
         }

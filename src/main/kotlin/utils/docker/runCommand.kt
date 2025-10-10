@@ -6,12 +6,18 @@ import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
 import dev.babies.utils.red
 
-fun DockerClient.runCommand(containerId: String, command: List<String>, suppressErrors: Boolean = false): CommandResult {
+fun DockerClient.runCommand(
+    containerId: String,
+    command: List<String>,
+    asRoot: Boolean = false,
+    suppressErrors: Boolean = false
+): CommandResult {
     try {
         val exec = this.execCreateCmd(containerId)
             .withAttachStdout(true)
             .withAttachStderr(true)
             .withCmd(*command.toTypedArray())
+            .apply { if (asRoot) withPrivileged(true).withUser("root") }
             .exec()
 
         val output = StringBuilder()
