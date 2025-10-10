@@ -141,6 +141,12 @@ class SslManager {
             ks.load(null, null)
             ks.setKeyEntry("root", keyPair.private, "vocus".toCharArray(), chain)
             FileOutputStream(pkcs12File).use { fos -> ks.store(fos, "vocus".toCharArray()) }
+
+            // Create a Java Keystore File
+            val jksFile = sslDirectory.resolve("root-ca.jks")
+            FileOutputStream(jksFile).use { fos ->
+                ks.store(fos, "vocus".toCharArray())
+            }
         }
 
         val privateKey = loadPrivateKey(keyFile)

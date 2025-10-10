@@ -9,6 +9,7 @@ import dev.babies.application.cli.database.DatabaseCommand
 import dev.babies.application.cli.etcd.EtcdCommand
 import dev.babies.application.cli.poweroff.PoweroffCommand
 import dev.babies.application.cli.project.ProjectCommand
+import dev.babies.application.cli.ssl.SslCommand
 import dev.babies.application.init.initCompletion
 import dev.babies.application.init.install
 import dev.babies.application.init.needsInstall
@@ -72,6 +73,7 @@ class Main : SuspendingCliktCommand(
             BootCommand(),
             DatabaseCommand(),
             EtcdCommand(),
+            SslCommand(),
         )
     }
 }
