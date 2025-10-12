@@ -2,6 +2,8 @@ package dev.babies.application.cli.boot
 
 import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.core.Context
+import dev.babies.application.docker.network.DockerNetwork
+import dev.babies.application.docker.network.VOCUS_DOCKER_NETWORK_DI_KEY
 import dev.babies.application.init.initDns
 import dev.babies.application.init.initHosts
 import dev.babies.application.init.initMongo8
@@ -11,14 +13,18 @@ import dev.babies.application.init.initRabbit4
 import dev.babies.application.init.initSsl
 import dev.babies.application.init.initTraefik
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 
 class BootCommand : SuspendingCliktCommand("boot"), KoinComponent {
 
+    private val dockerNetwork by inject<DockerNetwork>(named(VOCUS_DOCKER_NETWORK_DI_KEY))
     override fun helpEpilog(context: Context): String {
         return "starts all core services required to run vocus"
     }
 
     override suspend fun run() {
+        dockerNetwork.createIfMissing()
         initHosts()
         initSsl()
         initTraefik()
