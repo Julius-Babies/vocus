@@ -1,3 +1,6 @@
+> [!WARNING]
+> Vocus is deprecated and replaced by the native [werkbank.CLI](https://github.com/Julius-Babies/werkbank-cli).
+
 # Vocus
 
 **Vocus** is a CLI tool that helps you manage complex software projects with multiple interdependent services. It was created to solve a common pain: when working on applications composed of multiple repositories (e.g. backend, website, auth-server), developers often struggle with setting up a consistent development environment.
